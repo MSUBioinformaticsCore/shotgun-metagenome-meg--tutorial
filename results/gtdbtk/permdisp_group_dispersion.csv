@@ -1,0 +1,50 @@
+Condition,Level,Group,mean_distance_to_centroid
+fecal_color,All features,Abnormally Dark,0.38684190977476346
+fecal_color,All features,Normal,0.22477788010975505
+fecal_color,Phylum,Abnormally Dark,0.2702086886169147
+fecal_color,Phylum,Normal,0.0846512279094217
+fecal_color,Class,Abnormally Dark,0.3137158597456597
+fecal_color,Class,Normal,0.10818027600901338
+fecal_color,Order,Abnormally Dark,0.32573964616230366
+fecal_color,Order,Normal,0.11180299428349151
+fecal_color,Family,Abnormally Dark,0.33512039947666883
+fecal_color,Family,Normal,0.11825629240799461
+fecal_color,Genus,Abnormally Dark,0.34360676232129755
+fecal_color,Genus,Normal,0.19324584214033572
+fecal_color,Species,Abnormally Dark,0.3438804891362152
+fecal_color,Species,Normal,0.23793237874857873
+fecal_odor,All features,Moderately Unpleasant,0.20473294538459536
+fecal_odor,All features,Normal,0.2245458486903098
+fecal_odor,All features,Unpleasant,0.26339918950158214
+fecal_odor,Phylum,Moderately Unpleasant,0.08146841818334301
+fecal_odor,Phylum,Normal,0.08655436172427827
+fecal_odor,Phylum,Unpleasant,0.12940719153482325
+fecal_odor,Class,Moderately Unpleasant,0.09584996369920205
+fecal_odor,Class,Normal,0.10957581876440042
+fecal_odor,Class,Unpleasant,0.17319338328557007
+fecal_odor,Order,Moderately Unpleasant,0.09975005115417525
+fecal_odor,Order,Normal,0.11208888292378587
+fecal_odor,Order,Unpleasant,0.1967747348511887
+fecal_odor,Family,Moderately Unpleasant,0.10856346398990896
+fecal_odor,Family,Normal,0.11781916518397621
+fecal_odor,Family,Unpleasant,0.20123927265570551
+fecal_odor,Genus,Moderately Unpleasant,0.1788541612789068
+fecal_odor,Genus,Normal,0.19731518292619823
+fecal_odor,Genus,Unpleasant,0.20481049240727645
+fecal_odor,Species,Moderately Unpleasant,0.20033000021636016
+fecal_odor,Species,Normal,0.24554814027654387
+fecal_odor,Species,Unpleasant,0.22832733624657006
+gender,All features,female,0.34695329505281186
+gender,All features,male,0.34279774595779305
+gender,Phylum,female,0.2397643716508367
+gender,Phylum,male,0.20103085292599832
+gender,Class,female,0.27238379738752005
+gender,Class,male,0.24877383526812472
+gender,Order,female,0.2767757487494608
+gender,Order,male,0.25145749163639824
+gender,Family,female,0.28740635091734856
+gender,Family,male,0.26407147225602745
+gender,Genus,female,0.31069900713203813
+gender,Genus,male,0.30774082948835446
+gender,Species,female,0.3152753634626868
+gender,Species,male,0.3503096255351021

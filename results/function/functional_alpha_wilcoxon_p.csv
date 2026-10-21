@@ -1,0 +1,181 @@
+Group,Condition,group1,group2,Index,p
+COG,gender,female,male,Observed,0.75
+COG,gender,female,male,Chao1,0.75
+COG,gender,female,male,Shannon,0.79
+COG,gender,female,male,Simpson,0.75
+COG,gender,female,male,Pielou,0.96
+COG,gender,female,male,Low-abundance rarity,0.68
+COG,fecal_color,Normal,Abnormally Dark,Observed,0.49
+COG,fecal_color,Normal,Abnormally Dark,Chao1,0.49
+COG,fecal_color,Normal,Abnormally Dark,Shannon,0.015
+COG,fecal_color,Normal,Abnormally Dark,Simpson,0.017
+COG,fecal_color,Normal,Abnormally Dark,Pielou,0.04
+COG,fecal_color,Normal,Abnormally Dark,Low-abundance rarity,0.0026
+COG,fecal_odor,Normal,Moderately Unpleasant,Observed,0.91
+COG,fecal_odor,Normal,Moderately Unpleasant,Chao1,0.91
+COG,fecal_odor,Normal,Moderately Unpleasant,Shannon,0.86
+COG,fecal_odor,Normal,Moderately Unpleasant,Simpson,0.8
+COG,fecal_odor,Normal,Moderately Unpleasant,Pielou,0.91
+COG,fecal_odor,Normal,Moderately Unpleasant,Low-abundance rarity,0.64
+COG,fecal_odor,Normal,Unpleasant,Observed,0.74
+COG,fecal_odor,Normal,Unpleasant,Chao1,0.74
+COG,fecal_odor,Normal,Unpleasant,Shannon,0.0033
+COG,fecal_odor,Normal,Unpleasant,Simpson,0.0013
+COG,fecal_odor,Normal,Unpleasant,Pielou,0.0011
+COG,fecal_odor,Normal,Unpleasant,Low-abundance rarity,0.00014
+COG,fecal_odor,Moderately Unpleasant,Unpleasant,Observed,0.96
+COG,fecal_odor,Moderately Unpleasant,Unpleasant,Chao1,0.96
+COG,fecal_odor,Moderately Unpleasant,Unpleasant,Shannon,0.0081
+COG,fecal_odor,Moderately Unpleasant,Unpleasant,Simpson,0.0018
+COG,fecal_odor,Moderately Unpleasant,Unpleasant,Pielou,0.0061
+COG,fecal_odor,Moderately Unpleasant,Unpleasant,Low-abundance rarity,0.0009
+EC,gender,female,male,Observed,0.53
+EC,gender,female,male,Chao1,0.53
+EC,gender,female,male,Shannon,0.56
+EC,gender,female,male,Simpson,0.5
+EC,gender,female,male,Pielou,0.32
+EC,gender,female,male,Low-abundance rarity,0.65
+EC,fecal_color,Normal,Abnormally Dark,Observed,0.66
+EC,fecal_color,Normal,Abnormally Dark,Chao1,0.69
+EC,fecal_color,Normal,Abnormally Dark,Shannon,0.52
+EC,fecal_color,Normal,Abnormally Dark,Simpson,0.16
+EC,fecal_color,Normal,Abnormally Dark,Pielou,0.85
+EC,fecal_color,Normal,Abnormally Dark,Low-abundance rarity,0.023
+EC,fecal_odor,Normal,Moderately Unpleasant,Observed,0.8
+EC,fecal_odor,Normal,Moderately Unpleasant,Chao1,0.74
+EC,fecal_odor,Normal,Moderately Unpleasant,Shannon,0.97
+EC,fecal_odor,Normal,Moderately Unpleasant,Simpson,0.86
+EC,fecal_odor,Normal,Moderately Unpleasant,Pielou,0.74
+EC,fecal_odor,Normal,Moderately Unpleasant,Low-abundance rarity,0.69
+EC,fecal_odor,Normal,Unpleasant,Observed,0.79
+EC,fecal_odor,Normal,Unpleasant,Chao1,0.74
+EC,fecal_odor,Normal,Unpleasant,Shannon,0.69
+EC,fecal_odor,Normal,Unpleasant,Simpson,0.053
+EC,fecal_odor,Normal,Unpleasant,Pielou,0.32
+EC,fecal_odor,Normal,Unpleasant,Low-abundance rarity,0.0076
+EC,fecal_odor,Moderately Unpleasant,Unpleasant,Observed,0.67
+EC,fecal_odor,Moderately Unpleasant,Unpleasant,Chao1,0.67
+EC,fecal_odor,Moderately Unpleasant,Unpleasant,Shannon,0.74
+EC,fecal_odor,Moderately Unpleasant,Unpleasant,Simpson,0.11
+EC,fecal_odor,Moderately Unpleasant,Unpleasant,Pielou,0.27
+EC,fecal_odor,Moderately Unpleasant,Unpleasant,Low-abundance rarity,0.0081
+Pfam,gender,female,male,Observed,0.75
+Pfam,gender,female,male,Chao1,0.79
+Pfam,gender,female,male,Shannon,0.42
+Pfam,gender,female,male,Simpson,0.75
+Pfam,gender,female,male,Pielou,0.62
+Pfam,gender,female,male,Low-abundance rarity,0.96
+Pfam,fecal_color,Normal,Abnormally Dark,Observed,0.47
+Pfam,fecal_color,Normal,Abnormally Dark,Chao1,0.57
+Pfam,fecal_color,Normal,Abnormally Dark,Shannon,0.39
+Pfam,fecal_color,Normal,Abnormally Dark,Simpson,0.2
+Pfam,fecal_color,Normal,Abnormally Dark,Pielou,1
+Pfam,fecal_color,Normal,Abnormally Dark,Low-abundance rarity,0.044
+Pfam,fecal_odor,Normal,Moderately Unpleasant,Observed,0.86
+Pfam,fecal_odor,Normal,Moderately Unpleasant,Chao1,0.97
+Pfam,fecal_odor,Normal,Moderately Unpleasant,Shannon,1
+Pfam,fecal_odor,Normal,Moderately Unpleasant,Simpson,0.8
+Pfam,fecal_odor,Normal,Moderately Unpleasant,Pielou,0.8
+Pfam,fecal_odor,Normal,Moderately Unpleasant,Low-abundance rarity,0.8
+Pfam,fecal_odor,Normal,Unpleasant,Observed,0.79
+Pfam,fecal_odor,Normal,Unpleasant,Chao1,0.95
+Pfam,fecal_odor,Normal,Unpleasant,Shannon,0.29
+Pfam,fecal_odor,Normal,Unpleasant,Simpson,0.045
+Pfam,fecal_odor,Normal,Unpleasant,Pielou,0.55
+Pfam,fecal_odor,Normal,Unpleasant,Low-abundance rarity,0.019
+Pfam,fecal_odor,Moderately Unpleasant,Unpleasant,Observed,0.89
+Pfam,fecal_odor,Moderately Unpleasant,Unpleasant,Chao1,0.89
+Pfam,fecal_odor,Moderately Unpleasant,Unpleasant,Shannon,0.53
+Pfam,fecal_odor,Moderately Unpleasant,Unpleasant,Simpson,0.061
+Pfam,fecal_odor,Moderately Unpleasant,Unpleasant,Pielou,0.41
+Pfam,fecal_odor,Moderately Unpleasant,Unpleasant,Low-abundance rarity,0.061
+KEGG_KO,gender,female,male,Observed,0.68
+KEGG_KO,gender,female,male,Chao1,0.68
+KEGG_KO,gender,female,male,Shannon,0.68
+KEGG_KO,gender,female,male,Simpson,0.75
+KEGG_KO,gender,female,male,Pielou,0.82
+KEGG_KO,gender,female,male,Low-abundance rarity,0.65
+KEGG_KO,fecal_color,Normal,Abnormally Dark,Observed,0.57
+KEGG_KO,fecal_color,Normal,Abnormally Dark,Chao1,0.57
+KEGG_KO,fecal_color,Normal,Abnormally Dark,Shannon,0.66
+KEGG_KO,fecal_color,Normal,Abnormally Dark,Simpson,0.69
+KEGG_KO,fecal_color,Normal,Abnormally Dark,Pielou,0.82
+KEGG_KO,fecal_color,Normal,Abnormally Dark,Low-abundance rarity,0.98
+KEGG_KO,fecal_odor,Normal,Moderately Unpleasant,Observed,0.91
+KEGG_KO,fecal_odor,Normal,Moderately Unpleasant,Chao1,0.8
+KEGG_KO,fecal_odor,Normal,Moderately Unpleasant,Shannon,0.91
+KEGG_KO,fecal_odor,Normal,Moderately Unpleasant,Simpson,0.54
+KEGG_KO,fecal_odor,Normal,Moderately Unpleasant,Pielou,0.64
+KEGG_KO,fecal_odor,Normal,Moderately Unpleasant,Low-abundance rarity,0.69
+KEGG_KO,fecal_odor,Normal,Unpleasant,Observed,1
+KEGG_KO,fecal_odor,Normal,Unpleasant,Chao1,1
+KEGG_KO,fecal_odor,Normal,Unpleasant,Shannon,0.95
+KEGG_KO,fecal_odor,Normal,Unpleasant,Simpson,0.35
+KEGG_KO,fecal_odor,Normal,Unpleasant,Pielou,0.69
+KEGG_KO,fecal_odor,Normal,Unpleasant,Low-abundance rarity,0.74
+KEGG_KO,fecal_odor,Moderately Unpleasant,Unpleasant,Observed,0.81
+KEGG_KO,fecal_odor,Moderately Unpleasant,Unpleasant,Chao1,0.81
+KEGG_KO,fecal_odor,Moderately Unpleasant,Unpleasant,Shannon,1
+KEGG_KO,fecal_odor,Moderately Unpleasant,Unpleasant,Simpson,0.6
+KEGG_KO,fecal_odor,Moderately Unpleasant,Unpleasant,Pielou,0.67
+KEGG_KO,fecal_odor,Moderately Unpleasant,Unpleasant,Low-abundance rarity,0.96
+KEGG_Module,gender,female,male,Observed,0.5
+KEGG_Module,gender,female,male,Chao1,0.43
+KEGG_Module,gender,female,male,Shannon,0.96
+KEGG_Module,gender,female,male,Simpson,0.65
+KEGG_Module,gender,female,male,Pielou,0.26
+KEGG_Module,gender,female,male,Low-abundance rarity,0.89
+KEGG_Module,fecal_color,Normal,Abnormally Dark,Observed,0.88
+KEGG_Module,fecal_color,Normal,Abnormally Dark,Chao1,1
+KEGG_Module,fecal_color,Normal,Abnormally Dark,Shannon,0.15
+KEGG_Module,fecal_color,Normal,Abnormally Dark,Simpson,0.04
+KEGG_Module,fecal_color,Normal,Abnormally Dark,Pielou,0.16
+KEGG_Module,fecal_color,Normal,Abnormally Dark,Low-abundance rarity,1
+KEGG_Module,fecal_odor,Normal,Moderately Unpleasant,Observed,0.8
+KEGG_Module,fecal_odor,Normal,Moderately Unpleasant,Chao1,0.64
+KEGG_Module,fecal_odor,Normal,Moderately Unpleasant,Shannon,0.54
+KEGG_Module,fecal_odor,Normal,Moderately Unpleasant,Simpson,0.59
+KEGG_Module,fecal_odor,Normal,Moderately Unpleasant,Pielou,0.97
+KEGG_Module,fecal_odor,Normal,Moderately Unpleasant,Low-abundance rarity,0.019
+KEGG_Module,fecal_odor,Normal,Unpleasant,Observed,0.79
+KEGG_Module,fecal_odor,Normal,Unpleasant,Chao1,0.87
+KEGG_Module,fecal_odor,Normal,Unpleasant,Shannon,0.011
+KEGG_Module,fecal_odor,Normal,Unpleasant,Simpson,0.00011
+KEGG_Module,fecal_odor,Normal,Unpleasant,Pielou,0.071
+KEGG_Module,fecal_odor,Normal,Unpleasant,Low-abundance rarity,0.89
+KEGG_Module,fecal_odor,Moderately Unpleasant,Unpleasant,Observed,0.66
+KEGG_Module,fecal_odor,Moderately Unpleasant,Unpleasant,Chao1,0.47
+KEGG_Module,fecal_odor,Moderately Unpleasant,Unpleasant,Shannon,0.0024
+KEGG_Module,fecal_odor,Moderately Unpleasant,Unpleasant,Simpson,0.00064
+KEGG_Module,fecal_odor,Moderately Unpleasant,Unpleasant,Pielou,0.039
+KEGG_Module,fecal_odor,Moderately Unpleasant,Unpleasant,Low-abundance rarity,0.018
+KEGG_Pathway,gender,female,male,Observed,0.35
+KEGG_Pathway,gender,female,male,Chao1,0.44
+KEGG_Pathway,gender,female,male,Shannon,0.89
+KEGG_Pathway,gender,female,male,Simpson,0.96
+KEGG_Pathway,gender,female,male,Pielou,0.26
+KEGG_Pathway,gender,female,male,Low-abundance rarity,0.82
+KEGG_Pathway,fecal_color,Normal,Abnormally Dark,Observed,0.61
+KEGG_Pathway,fecal_color,Normal,Abnormally Dark,Chao1,0.67
+KEGG_Pathway,fecal_color,Normal,Abnormally Dark,Shannon,0.22
+KEGG_Pathway,fecal_color,Normal,Abnormally Dark,Simpson,0.0065
+KEGG_Pathway,fecal_color,Normal,Abnormally Dark,Pielou,0.15
+KEGG_Pathway,fecal_color,Normal,Abnormally Dark,Low-abundance rarity,0.00095
+KEGG_Pathway,fecal_odor,Normal,Moderately Unpleasant,Observed,0.4
+KEGG_Pathway,fecal_odor,Normal,Moderately Unpleasant,Chao1,0.29
+KEGG_Pathway,fecal_odor,Normal,Moderately Unpleasant,Shannon,1
+KEGG_Pathway,fecal_odor,Normal,Moderately Unpleasant,Simpson,0.54
+KEGG_Pathway,fecal_odor,Normal,Moderately Unpleasant,Pielou,0.54
+KEGG_Pathway,fecal_odor,Normal,Moderately Unpleasant,Low-abundance rarity,0.54
+KEGG_Pathway,fecal_odor,Normal,Unpleasant,Observed,0.14
+KEGG_Pathway,fecal_odor,Normal,Unpleasant,Chao1,0.19
+KEGG_Pathway,fecal_odor,Normal,Unpleasant,Shannon,0.028
+KEGG_Pathway,fecal_odor,Normal,Unpleasant,Simpson,0.00024
+KEGG_Pathway,fecal_odor,Normal,Unpleasant,Pielou,0.23
+KEGG_Pathway,fecal_odor,Normal,Unpleasant,Low-abundance rarity,0.00014
+KEGG_Pathway,fecal_odor,Moderately Unpleasant,Unpleasant,Observed,0.55
+KEGG_Pathway,fecal_odor,Moderately Unpleasant,Unpleasant,Chao1,0.88
+KEGG_Pathway,fecal_odor,Moderately Unpleasant,Unpleasant,Shannon,0.061
+KEGG_Pathway,fecal_odor,Moderately Unpleasant,Unpleasant,Simpson,0.0009
+KEGG_Pathway,fecal_odor,Moderately Unpleasant,Unpleasant,Pielou,0.092
+KEGG_Pathway,fecal_odor,Moderately Unpleasant,Unpleasant,Low-abundance rarity,0.0009

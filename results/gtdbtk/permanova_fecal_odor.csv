@@ -1,0 +1,8 @@
+Condition,Comparison,Level,Features,R2,p,p_adj,PERMDISP_p,PERMDISP_p_adj
+fecal_odor,All groups,All features,497,0.598,0.0001,0.0001,0.0154,0.02695
+fecal_odor,All groups,Phylum,5,0.813,0.0001,0.0001,0.1718,0.24052
+fecal_odor,All groups,Class,8,0.797,0.0001,0.0001,0.0036,0.0084
+fecal_odor,All groups,Order,11,0.768,0.0001,0.0001,0.0004,0.0014
+fecal_odor,All groups,Family,17,0.769,0.0001,0.0001,0.0004,0.0014
+fecal_odor,All groups,Genus,38,0.643,0.0001,0.0001,0.5263,0.5263
+fecal_odor,All groups,Species,57,0.528,0.0001,0.0001,0.3283,0.383016667

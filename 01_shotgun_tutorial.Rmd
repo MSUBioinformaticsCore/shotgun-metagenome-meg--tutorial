@@ -1,0 +1,3362 @@
+---
+title: "Shotgun metagenome analysis in R: MAG taxonomy (GTDB-Tk) and community function (eggNOG-mapper)"
+output:
+  github_document:
+    toc: true
+    toc_depth: 2
+    html_preview: false
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE,
+                      fig.align = "center", out.width = "100%")
+library(readr); library(readxl); library(dplyr); library(tidyr); library(knitr)
+
+metadata_tsv <- "data/metadata.tsv"
+raw_xlsx     <- "results/gtdbtk/raw_counts_gtdbtk.xlsx"
+fig_dir      <- "figures/gtdbtk"
+sat_csv      <- "results/gtdbtk/rarefaction_saturation_depth.csv"
+alpha_csv    <- "results/gtdbtk/alpha_diversity_values.csv"
+alpha_test_csv <- "results/gtdbtk/alpha_diversity_tests.csv"
+relab_csv    <- "results/gtdbtk/relative_abundance_by_group.csv"
+fun_dir      <- "figures/function"
+fun_alpha_csv <- "results/function/functional_alpha_wilcoxon_p.csv"
+fun_perm_csv <- "results/function/permanova_function.csv"
+fun_ancom_xlsx <- c(gender      = "results/function/ancombc2_results_by_group_gender.xlsx",
+                    fecal_color = "results/function/ancombc2_results_by_group_fecal_color.xlsx",
+                    odor_MU_N   = "results/function/ancombc2_results_by_group_fecal_odor_Moderately_Unpleasant_vs_Normal.xlsx",
+                    odor_U_N    = "results/function/ancombc2_results_by_group_fecal_odor_Unpleasant_vs_Normal.xlsx",
+                    odor_U_MU   = "results/function/ancombc2_results_by_group_fecal_odor_Unpleasant_vs_Moderately_Unpleasant.xlsx")
+pcoa_csv     <- "results/gtdbtk/pcoa_bray_coordinates.csv"
+pcoa_ax_csv  <- "results/gtdbtk/pcoa_bray_axes.csv"
+perm_csv     <- c(fecal_color = "results/gtdbtk/permanova_fecal_color.csv",
+                  fecal_odor  = "results/gtdbtk/permanova_fecal_odor.csv",
+                  gender      = "results/gtdbtk/permanova_gender.csv")
+disp_csv     <- "results/gtdbtk/permdisp_group_dispersion.csv"
+ancom_xlsx   <- c(fecal_color = "results/gtdbtk/ancombc2_results_by_level_fecal_color.xlsx",
+                  odor_MU_N   = "results/gtdbtk/ancombc2_results_by_level_fecal_odor_Moderately_Unpleasant_vs_Normal.xlsx",
+                  odor_U_N    = "results/gtdbtk/ancombc2_results_by_level_fecal_odor_Unpleasant_vs_Normal.xlsx",
+                  odor_U_MU   = "results/gtdbtk/ancombc2_results_by_level_fecal_odor_Unpleasant_vs_Moderately_Unpleasant.xlsx",
+                  gender      = "results/gtdbtk/ancombc2_results_by_level_gender.xlsx")
+
+pfmt  <- function(p) ifelse(p < 0.001, formatC(p, format = "e", digits = 1), formatC(p, format = "f", digits = 3))
+p4    <- function(p) formatC(p, format = "f", digits = 4)
+# p, q and Wilcoxon p in all PERMANOVA and ANCOM-BC2 tables: 4 decimals, scientific below 0.0001
+pq    <- function(p) ifelse(p < 1e-4, formatC(p, format = "e", digits = 1), formatC(p, format = "f", digits = 4))
+# one format for all PERMANOVA and ANCOM-BC2 tables: HTML table, every cell centred
+ctab  <- function(x, caption) {
+  h <- knitr::kable(x, format = "html", align = "c", escape = TRUE, table.attr = "", caption = caption)
+  h <- gsub('style="text-align:center;"', 'align="center"', h, fixed = TRUE)
+  knitr::asis_output(paste0("\n", h, "\n"))
+}
+
+fmt   <- function(x, d = 0) format(round(x, d), big.mark = ",", nsmall = d)
+ranks <- c("Phylum", "Class", "Order", "Family", "Genus", "Species")
+read_book <- function(f) { s <- excel_sheets(f); setNames(lapply(s, \(x) read_excel(f, sheet = x)), s) }
+conditions <- list(gender      = c("female", "male"),
+                   fecal_color = c("Normal", "Abnormally Dark"),
+                   fecal_odor  = c("Normal", "Moderately Unpleasant", "Unpleasant"))
+```
+
+This tutorial takes shotgun metagenomes from raw reads on the HPCC to
+statistical results in R, using nf-core/mag [1, 2]. It covers two views of
+the community:
+
+* **Who is there:** metagenome-assembled genomes (MAGs), refined with DAS
+  Tool [3] and named by GTDB-Tk [4] with the Genome Taxonomy Database
+  (GTDB) [5].
+* **What it can do:** all assembled genes, annotated by eggNOG-mapper [6]
+  into six functional groups (Section 1.5).
+
+Each section gives a short code example, the result and a brief
+interpretation.
+
+**Data:** 30 canine faecal metagenomes with three conditions (Section 2):
+
+1. **gender:** female or male;
+2. **fecal_color:** Normal or Abnormally Dark;
+3. **fecal_odor:** Normal, Moderately Unpleasant or Unpleasant.
+
+---
+
+# 1. Upstream processing
+
+Everything before R runs on the MSU HPCC in three stages, with scripts in
+[`scripts/`](scripts):
+
+1. **nf-core/mag 5.5.0:** read QC, host removal, assembly, binning, MAG
+   refinement, quality and taxonomy (Sections 1.1–1.4);
+2. **functional annotation** of every assembled gene (Section 1.5);
+3. **phyloseq objects** for R (Section 1.6).
+
+## 1.1 Pipeline and settings
+
+nf-core/mag [1, 2] is a Nextflow [7] pipeline maintained by the nf-core
+community [8]. Version 5.5.0 processed the paired-end Illumina reads with
+these tools and settings:
+
+| Step | Tool | Setting |
+|---|---|---|
+| Read QC | fastp [9] | trims adapters and low-quality bases; drops reads shorter than 50 bp (`--reads_minlength 50`) |
+| PhiX and host removal | Bowtie2 [10] | removes PhiX (default) and host reads, using one combined reference: dog ROS_Cfam_1.0 (GCF_014441545.1) and its mitogenome (NC_002008.4), human T2T-CHM13v2.0 (GCF_009914755.1) and its mitogenome (NC_012920.1) |
+| Assembly | MEGAHIT [11] | assembles each sample separately; metaSPAdes is not run (`--skip_spades`) |
+| Gene prediction | Prodigal [12] | predicts protein-coding genes on every assembly (default) |
+| Binning | MetaBAT2 [13], MaxBin2 [14], MetaBinner [15] | `--binning_map_mode group`: reads of every sample in a group are mapped to every assembly of that group; CONCOCT, COMEBin and SemiBin2 are not run |
+| Domain classification | Tiara [16] | `--bin_domain_classification` labels each bin prokaryotic or eukaryotic, and eukaryotic bins are kept out of GTDB-Tk; unbinned contigs are left out of later steps (`--exclude_unbins_from_postbinning`) |
+| Bin refinement | DAS Tool [3] | `--refine_bins_dastool`; only the refined bins continue (`--postbinning_input refined_bins_only`) |
+| MAG quality | CheckM2 [17] | `--run_checkm2`; BUSCO is switched off (`--run_busco false`) |
+| MAG taxonomy | GTDB-Tk [4, 18] | GTDB release 232, the mag default; a MAG is classified only if its completeness is ≥ 50% and its contamination ≤ 10% (defaults) |
+| Output | | `GenomeBinning/`, `Taxonomy/GTDB-Tk/`, `Annotation/Prodigal/`, `QC_shortreads/` |
+
+The pipeline runs as a SLURM job in the format recommended by ICER and the
+MSU Bioinformatics Core [19, 20]. The job holds only the Nextflow head
+process (2 CPUs, 16 GB); Nextflow sends each pipeline step to SLURM as a
+separate job.
+
+**Step 1. Install Nextflow** (one time, on a development node):
+
+```bash
+module load Java    # Java 17 or later ('module spider Java')
+curl -s https://get.nextflow.io | bash && mkdir -p ~/bin && mv nextflow ~/bin/
+nextflow -version
+```
+
+**Step 2. Build the host reference** (one time). nf-core/mag takes one host
+file (`--host_fasta`), so [`prep_references.sh`](scripts/prep_references.sh)
+joins the dog and human genomes and mitogenomes into one FASTA, prefixing
+names with `dog_` or `human_`. Set `REF_DIR`, then submit:
+
+```bash
+sbatch prep_references.sh
+```
+
+**Step 3. Write the samplesheet.** [`make_samplesheet.py`](scripts/make_samplesheet.py)
+builds the nf-core/mag samplesheet
+(`sample,run,group,short_reads_1,short_reads_2,long_reads`) from a folder
+of FASTQ files and a table with the columns `run_accession`, `sample` and
+`group`:
+
+```bash
+python3 make_samplesheet.py --fastq-dir /mnt/scratch/$USER/raw \
+    --metadata runs.tsv --out samplesheet.csv
+```
+
+With `--binning_map_mode group`, a group of *n* samples costs *n*² read
+mappings, so the script warns about groups larger than 20 samples.
+
+**Step 4. Prepare the job script** [`run_mag.slurm`](scripts/run_mag.slurm).
+Its core writes the cluster configuration and starts the pipeline:
+
+```bash
+#!/bin/bash --login
+#SBATCH --job-name=nfcore_mag
+#SBATCH --time=7-00:00:00
+#SBATCH --cpus-per-task=2
+#SBATCH --mem=16G
+#SBATCH --output=logs/%x_%j.log
+
+# Run folder, samplesheet, outdir, workdir and host reference
+RUN_DIR=/mnt/scratch/$USER/mag
+SAMPLESHEET=$RUN_DIR/samplesheet.csv
+OUTDIR=$RUN_DIR/results
+WORKDIR=$RUN_DIR/work
+HOST_FASTA=/mnt/research/YOUR_LAB/refs/host/dog_human_host.fna
+PIPELINE_DIR=/mnt/scratch/$USER/pipelines/nf-core-mag-5.5.0
+
+# Cluster configuration: each pipeline step becomes a SLURM job
+cat > hpcc.config <<EOF
+process {
+    executor       = 'slurm'
+    resourceLimits = [ cpus: 128, memory: 1900.GB, time: 168.h ]
+    errorStrategy  = { task.exitStatus in [137,140,143] ? 'retry' : 'finish' }
+    maxRetries     = 2
+    withName: '.*:BOWTIE2_HOST_REMOVAL_BUILD' { cpus = 16; memory = 64.GB; time = 24.h }
+    withName: '.*:MEGAHIT' { cpus = 32; memory = { 120.GB * task.attempt }; time = { 48.h * task.attempt } }
+}
+singularity { enabled = true; autoMounts = true }
+EOF
+
+# Run nf-core/mag 5.5.0
+nextflow run $PIPELINE_DIR -profile singularity -c hpcc.config -work-dir $WORKDIR -resume \
+--input $SAMPLESHEET \
+--outdir $OUTDIR \
+--host_fasta $HOST_FASTA \
+--reads_minlength 50 \
+--skip_spades \
+--binning_map_mode group \
+--skip_concoct --skip_comebin --skip_semibin \
+--bin_domain_classification \
+--exclude_unbins_from_postbinning \
+--refine_bins_dastool \
+--postbinning_input refined_bins_only \
+--run_busco false \
+--run_checkm2
+```
+
+The full script also downloads the pipeline code and checks that the
+system Apptainer is used. Set `ACCOUNT` to run the jobs under a specific
+account, such as the ICER Data Machine.
+
+**Step 5. Submit and follow the job:**
+
+```bash
+sbatch run_mag.slurm
+squeue -u $USER
+tail -f logs/nfcore_mag_*.log
+```
+
+If the run fails or reaches the 7-day limit, submit again: with the same
+`WORKDIR`, `-resume` skips finished steps.
+
+**Notes.**
+
+* The Bowtie2 index of the 5.5 Gbp dog + human reference is built on the
+  first run (64 GB, 24 h).
+* GTDB-Tk downloads the very large release 232 package into the work
+  folder on the first run; check your scratch quota.
+* Delete the work folder once the results are checked; scratch is purged
+  after 45 days without access.
+
+## 1.2 From reads to MAGs
+
+**Assembly.** MEGAHIT [11] assembles each sample with a succinct de Bruijn
+graph over a range of *k*-mer sizes. Prodigal [12] predicts the
+protein-coding genes on every contig; these genes are annotated in
+Section 1.5.
+
+**Binning.** Binning sorts contigs into **bins**, each meant to be one
+genome, using sequence composition (tetranucleotide frequencies) and
+coverage across samples (contigs of one genome rise and fall together).
+The three binners combine these signals differently:
+
+| | MetaBAT2 [13] | MaxBin2 [14] | MetaBinner [15] |
+|---|---|---|---|
+| Algorithm | graph-based clustering of composition and abundance distances | expectation-maximisation, seeded with single-copy marker genes | an ensemble of *k*-means clusterings on several feature sets, combined using marker genes |
+| Coverage input | depth per sample (`jgi_summarize_bam_contig_depths`) | abundance per sample | depth per sample |
+
+**Refinement.** DAS Tool [3] scores all bins by their single-copy genes
+and keeps a **non-redundant set of the best bins**, so each contig is in
+at most one refined bin. With `--postbinning_input refined_bins_only`,
+every MAG in the analysis is a DAS Tool bin.
+
+**Quality and abundance.** CheckM2 [17] estimates each MAG's completeness
+and contamination with machine-learning models; GTDB-Tk classifies MAGs
+that are ≥ 50% complete and ≤ 10% contaminated. nf-core/mag reports each
+MAG's **median contig depth** per sample (`bin_depths_summary.tsv`), which
+Section 1.6 converts to estimated reads.
+
+```bash
+cd $OUTDIR
+ls GenomeBinning/DASTool/bins | head                  # refined MAGs (MEGAHIT-<binner>Refined-<sample>.*)
+head -3 GenomeBinning/bin_summary.tsv                 # depths, CheckM2 completeness and contamination
+head -3 GenomeBinning/depths/bins/bin_depths_summary.tsv   # median contig depth per MAG and sample
+```
+
+## 1.3 GTDB and GTDB-Tk
+
+**GTDB** [5] defines taxa from genomes: ranks come from a phylogeny of
+conserved single-copy proteins and from average nucleotide identity (ANI),
+normalised by relative evolutionary divergence. Its names differ from NCBI
+in three ways seen in this dataset:
+
+* **Placeholder names.** A lineage without a validly published name
+  receives a placeholder, such as the genera `UMGS1590` and `UBA9414` or
+  the species `UMGS1590 sp900553245` and `Fusobacterium_A sp900555845`
+  (named after a reference genome accession).
+* **Alphabetic suffixes.** When an NCBI taxon is not monophyletic, GTDB
+  splits it and labels the parts with suffixes: the genera `Blautia` and
+  `Blautia_A`, `Fusobacterium_A`, or the phylum `Bacillota_I` next to
+  `Bacillota`.
+* **Seven fixed ranks.** Each lineage is written
+  `d__;p__;c__;o__;f__;g__;s__`. A rank that cannot be assigned stays
+  empty, for example `s__` for a new species.
+
+**GTDB-Tk** [4, 18] places each MAG in the GTDB reference tree using 120
+bacterial (or 53 archaeal) marker genes. A MAG gets a species name when its
+ANI to the species' representative genome is within the species radius
+(usually 95%); otherwise it is named to the lowest supported rank. GTDB
+**release 232** (R11-RS232, April 2026; 901,341 genomes in 199,923 species
+clusters), the nf-core/mag 5.5.0 default (`--gtdb_db`), was used with
+GTDB-Tk 2.7.2.
+
+```bash
+cut -f1,2 $OUTDIR/Taxonomy/GTDB-Tk/gtdbtk_summary.tsv | head   # MAG and GTDB lineage d__;p__;...;s__
+```
+
+## 1.4 Outputs used in R
+
+| File | Content | Used for |
+|---|---|---|
+| `GenomeBinning/depths/bins/bin_depths_summary.tsv` | median contig depth of each MAG in each sample | MAG abundance |
+| `GenomeBinning/bin_summary.tsv` | CheckM2 completeness, contamination and genome size | MAG size |
+| `Taxonomy/GTDB-Tk/gtdbtk_summary.tsv` | GTDB classification of each MAG | taxonomy |
+| `Annotation/Prodigal/MEGAHIT/<sample>/` | proteins and gene coordinates of each assembly | functional annotation |
+| `GenomeBinning/depths/contigs/` | depth of every contig in each sample | gene abundance |
+| `QC_shortreads/fastp/` | fastp reports | mean read length |
+
+```bash
+ls $OUTDIR/GenomeBinning/depths/bins $OUTDIR/Taxonomy/GTDB-Tk $OUTDIR/Annotation/Prodigal/MEGAHIT
+Rscript 7_create_phyloseq.R     # reads these files and writes phyloseq/ps_taxa.rds and ps_function.rds (Section 1.6)
+```
+
+## 1.5 Functional annotation
+
+Function is measured on **every gene assembled from a sample**, binned or
+not, so it describes the whole community. Gene abundance comes from the
+contig depths that nf-core/mag already computed; no reads are mapped
+again.
+
+### eggNOG and eggNOG-mapper
+
+**eggNOG 5.0** [21] is a database of orthologous groups (OGs): genes in
+different organisms that descend from one ancestral gene and usually keep
+its function. It holds 4.4 million OGs at 379 taxonomic levels, built from
+5,090 organisms (4,445 bacteria, 168 archaea, 477 eukaryotes) and 2,502
+viruses, each OG with an alignment, phylogeny, HMM and functional
+annotations.
+
+**eggNOG-mapper** (`emapper.py`) [6, 22] annotates proteins by orthology.
+This workflow uses eggNOG-mapper **v2** with the eggNOG 5.0 database (the
+last v2 release is 2.1.15); the newer eggNOG-mapper v3 targets eggNOG 7
+and does not work with eggNOG 5 data. Annotation runs in two phases:
+
+1. **Search.** Each protein is searched against eggNOG with DIAMOND [23]
+   (default; MMseqs2 and HMMER are alternatives). Its best hit that passes
+   the e-value, score, identity and coverage thresholds is the **seed
+   ortholog**.
+2. **Annotation.** The orthologs of the seed, from the narrowest OG up to
+   the annotation level, are collected and their functional terms are
+   transferred. Using orthologs rather than all similar sequences avoids
+   copying functions from diverged paralogs.
+
+The output, `<sample>.emapper.annotations`, has one row per protein with
+columns such as `eggNOG_OGs`, `KEGG_ko`, `KEGG_Module`, `KEGG_Pathway`,
+`EC`, `PFAMs` and `CAZy`. Four options restrict annotation to bacterial
+function while still searching the whole database, so a host or diet
+protein finds its true best hit and stays unannotated:
+
+| Option | Effect |
+|---|---|
+| `--tax_scope bacteria` | only OGs at or below Bacteria are used |
+| `--target_taxa 2` | functions are transferred only from bacterial (NCBI taxon 2) orthologs |
+| `--excluded_taxa 1117,1090` | ... excluding Cyanobacteria (1117) and Chlorobi (1090) |
+| `--dbmem` | loads the annotation database (about 44 GB) into memory for speed |
+
+### The six functional groups
+
+The analysis uses six groups, each a different way of describing gene
+function:
+
+| Group | ID example | What it describes | Source |
+|---|---|---|---|
+| **COG** | COG0513 | an NCBI Cluster of Orthologous Genes; COG 2024 has 4,981 COGs from 2,296 prokaryotic species (2,103 bacteria, 193 archaea) | `COG####` IDs in `eggNOG_OGs` [24] |
+| **EC** | 1.1.1.1 | an enzyme class by the reaction it catalyses (class.subclass.sub-subclass.serial), from the Enzyme Commission of the IUBMB | `EC` [25] |
+| **Pfam** | ABC_tran | a protein family or domain, each built as a profile hidden Markov model from a curated seed alignment (release 37.0: 21,979 families); a protein can carry several domains; Pfam is now served through InterPro | `PFAMs` [26] |
+| **KEGG KO** | K00001 | KEGG Orthology: molecular functions represented as functional orthologs, each manually defined in KEGG networks and identified by a K number; the most specific KEGG level | `KEGG_ko` [27] |
+| **KEGG Module** | M00001 | a manually curated functional unit defined by a logical expression of KOs, such as a pathway segment or a complex | `KEGG_Module` [27] |
+| **KEGG Pathway** | ko00010 | a pathway map of molecular interaction, reaction and relation networks, created manually from published literature, such as glycolysis/gluconeogenesis; the broadest KEGG level | `KEGG_Pathway` [27] |
+
+COG gives a broad, prokaryote-focused view of conserved function; EC
+describes catalytic activity; Pfam describes protein architecture; and the
+KEGG groups form a hierarchy (KO → Module → Pathway) that describes
+metabolism. The groups are analysed and reported in this order. A gene can belong to several terms in a group.
+
+### Running the annotation
+
+| Script | How to run | Purpose |
+|---|---|---|
+| [`func_config.sh`](scripts/func_config.sh) | edit once | paths to the mag output, samplesheet, eggNOG database and output folder |
+| [`setup_eggnog_taxa.sh`](scripts/setup_eggnog_taxa.sh) | `bash` (once) | adds the NCBI taxonomy files that `--target_taxa` and `--excluded_taxa` need |
+| [`1_prepare.sh`](scripts/1_prepare.sh) | `bash` | checks software, database and inputs; writes `func_manifest.tsv` |
+| [`2_annotate.slurm`](scripts/2_annotate.slurm) | `sbatch --array=1-30%20` | `emapper.py` on each sample's Prodigal proteins (16 CPUs, 96 GB, ≤ 24 h per sample) |
+| [`3_merge.slurm`](scripts/3_merge.slurm) | `sbatch` | sample × function tables |
+| [`4_build_exclusions.sh`](scripts/4_build_exclusions.sh) | `bash` (internet) | list of non-bacterial terms from KEGG BRITE, Pfam clans and COG 2024 |
+| [`5_filter.slurm`](scripts/5_filter.slurm) | `sbatch` | bacteria-only tables |
+| [`6_name_features.sh`](scripts/6_name_features.sh) | `bash` (internet) | official name for every ID |
+
+```bash
+bash setup_eggnog_taxa.sh                # once
+bash 1_prepare.sh                        # prints the next commands
+sbatch --array=1 2_annotate.slurm        # test on one sample
+sbatch --array=1-30%20 2_annotate.slurm  # all samples, 20 at a time
+sbatch 3_merge.slurm
+bash 4_build_exclusions.sh               # then review excluded_features.tsv
+sbatch 5_filter.slurm
+bash 6_name_features.sh
+```
+
+**Function tables.** Each gene takes the depth of its contig. A gene with
+*n* terms in a group gives 1/*n* of its value to each term, summed per
+term. Three versions are written: summed depth (`depth_`), depth per
+million (`dpm_`), and estimated reads, gene depth × gene length ÷ mean
+read length (`estreads_`, used in R).
+
+**Bacteria-only filter** (`5_filter.slurm`), in three layers:
+
+* **Gene origin:** genes on contigs that Tiara [16] labels eukaryotic,
+  archaeal or organellar, or whose eggNOG lineage is not bacterial (or is
+  Cyanobacteria or Chlorobi), are removed.
+* **Gene function:** genes whose KOs (or, without a KO, Pfams) are all
+  photosynthesis, eukaryote or organelle terms are removed.
+* **Terms:** such terms are dropped from the remaining genes before the
+  1/*n* split.
+
+The excluded terms (`excluded_features.tsv`, from KEGG BRITE [27], Pfam
+clans [26] and COG 2024 [24]) should be reviewed before filtering.
+
+**Official names** (`6_name_features.sh`). Each ID gets its exact current
+name from KEGG (`rest.kegg.jp/list`), ExPASy ENZYME [25] (IUBMB name), NCBI
+COG 2024 (`cog-24.def.tab`) or the Pfam clans file. IDs without one are
+removed and listed in `unmapped_features.tsv`.
+
+## 1.6 phyloseq objects
+
+[`7_create_phyloseq.R`](scripts/7_create_phyloseq.R) builds the phyloseq
+[28] objects, restricted to the samples in the metadata:
+
+| Object | Abundance (raw estimated reads) | tax_table |
+|---|---|---|
+| `ps_taxa.rds` | median MAG depth × MAG size (CheckM2) ÷ mean read length | GTDB Domain … Species; ranks without an assignment are left blank |
+| `ps_function.rds` | `estreads_<category>.tsv` from the named bacteria-only tables | ID, NAME |
+
+`ps_function.rds` is a list of six objects: KEGG_KO, KEGG_Module,
+KEGG_Pathway, Pfam, EC and COG.
+
+```r
+library(phyloseq)
+ps_taxa     <- readRDS("phyloseq/ps_taxa.rds")
+ps_function <- readRDS("phyloseq/ps_function.rds")
+ps_taxa
+names(ps_function)
+```
+
+**Why estimated reads.** nf-core/mag reports depth, not read counts, for
+MAGs. Multiplying depth by genome (or gene) length and dividing by the
+mean read length gives the number of reads that cover the MAG or gene.
+These values sit on a count scale, so they can be rarefied and used in
+ANCOM-BC2, but they remain estimates, not observed counts.
+
+Sections 2–12 are produced by
+[`8_metagenome_analysis.R`](scripts/8_metagenome_analysis.R), which follows
+the same steps as the 16S rRNA tutorial. It uses phyloseq [28], microViz
+[29], microbiome [30], vegan [31] and ANCOMBC [32].
+
+---
+
+# 2. Sample design
+
+```r
+design <- read.delim("data/metadata.tsv")                   # Sample, fecal_color, fecal_odor, gender
+design$fecal_odor <- factor(design$fecal_odor,
+                            levels = c("Normal", "Moderately Unpleasant", "Unpleasant"))  # Normal = reference
+```
+
+```{r design}
+design <- read_tsv(metadata_tsv, show_col_types = FALSE)
+lapply(names(conditions), function(cn) {
+  design |>
+    mutate(Group = factor(.data[[cn]], levels = conditions[[cn]])) |>
+    group_by(Group) |>
+    summarise(Samples = n(), IDs = paste(Sample[order(as.integer(sub("\\D+", "", Sample)))], collapse = ", "),
+              .groups = "drop") |>
+    mutate(Condition = cn, .before = 1)
+}) |>
+  bind_rows() |>
+  kable(caption = "Table 1. Sample design (data/metadata.tsv); the first level of each condition is the reference")
+n_grp <- function(cn) design |> count(g = factor(.data[[cn]], levels = conditions[[cn]])) |>
+  with(paste0(g, " (n = ", n, ")", collapse = ", "))
+```
+
+Table 1 lists, for each condition, its groups, the number of samples and
+the sample IDs. Every sample appears once per condition. Throughout the
+tutorial the conditions are analysed one at a time and always reported in
+the same order:
+
+1. **gender:** `r n_grp("gender")`; one comparison, female vs male.
+2. **fecal_color:** `r n_grp("fecal_color")`; one comparison, Normal vs
+   Abnormally Dark.
+3. **fecal_odor:** `r n_grp("fecal_odor")`; three levels, so three
+   pairwise comparisons: Normal vs Moderately Unpleasant, Normal vs
+   Unpleasant, and Moderately Unpleasant vs Unpleasant.
+
+```{r design-cross}
+xt <- design |>
+  mutate(fecal_color = factor(fecal_color, levels = conditions$fecal_color),
+         fecal_odor = factor(fecal_odor, levels = conditions$fecal_odor)) |>
+  count(fecal_color, fecal_odor) |>
+  pivot_wider(names_from = fecal_odor, values_from = n, values_fill = 0)
+kable(xt, caption = "Table 2. Samples by fecal_color (rows) and fecal_odor (columns)")
+```
+
+The two faecal conditions overlap strongly (Table 2): every Normal-odor
+sample has Normal colour and every Unpleasant sample is Abnormally Dark;
+only Moderately Unpleasant mixes both colours. Differences found for one of
+these two conditions may therefore reflect the other, and the two cannot be
+separated with these samples.
+
+---
+
+# 3. Raw abundance (GTDB-Tk MAGs)
+
+```r
+ps <- readRDS("phyloseq/ps_taxa.rds") |>
+  subset_taxa(Domain == "Bacteria")                       # bacterial MAGs only
+ps_genus <- ps |> tax_agg(rank = "Genus") |> ps_get()     # one table per level
+```
+
+```{r raw}
+raw <- read_book(raw_xlsx)
+samples <- design$Sample
+unf <- raw$features_unfiltered; flt <- raw$features_filtered
+m_flt <- as.matrix(flt[, samples])
+per_sample <- tibble(Sample = samples, Reads = colSums(m_flt), MAGs_detected = colSums(m_flt > 0))
+tot_flt <- sum(m_flt)
+lapply(ranks, function(r) {
+  d <- raw[[r]]
+  reads <- sum(as.matrix(d[, samples]))
+  tibble(Level = r, Taxa = nrow(d), `Estimated reads` = fmt(reads),
+         `% of reads` = round(100 * reads / tot_flt, 1),
+         `Most abundant` = paste(d |> arrange(desc(total_reads)) |> slice_head(n = 3) |> pull(!!r), collapse = "; "))
+}) |> bind_rows() |>
+  kable(caption = "Table 3. Taxa and estimated reads per level (results/gtdbtk/raw_counts_gtdbtk.xlsx)")
+lib_min <- per_sample |> slice_min(Reads, n = 1)
+lib_max <- per_sample |> slice_max(Reads, n = 1)
+binner  <- table(sub("^MEGAHIT-(.+)Refined-.*$", "\\1", flt$feature))
+origin  <- table(sub("^.*Refined-(S[0-9]+)\\..*$", "\\1", flt$feature))
+pct_rank <- function(r) fmt(100 * sum(m_flt[!is.na(flt[[r]]), ]) / tot_flt, 1)
+n_rank   <- function(r) sum(!is.na(flt[[r]]))
+phy <- raw$Phylum |> mutate(pct = round(100 * total_reads / tot_flt, 1))
+```
+
+The workbook `raw_counts_gtdbtk.xlsx` holds the raw (not rarefied, not
+transformed) estimated reads: one sheet per MAG table (`features_unfiltered`,
+`features_filtered`) and one per level, Phylum to Species. **Table 3**
+summarises the level sheets: the number of taxa, the estimated reads they
+hold, their share of all reads, and the three most abundant taxa.
+
+* **MAGs.** All `r nrow(unf)` MAGs are Bacteria, so the Bacteria filter
+  removed `r nrow(unf) - nrow(flt)` and **`r nrow(flt)` MAGs** remain.
+  DAS Tool kept `r binner[["MetaBAT2"]]` MetaBAT2, `r binner[["MaxBin2"]]`
+  MaxBin2 and `r binner[["MetaBinner"]]` MetaBinner bins; each sample's
+  assembly contributed `r min(origin)`–`r max(origin)` MAGs.
+* **Estimated reads.** **`r fmt(tot_flt)` in total**, from
+  `r fmt(lib_min$Reads)` (`r lib_min$Sample`) to `r fmt(lib_max$Reads)`
+  (`r lib_max$Sample`) per sample. With group-mode binning, each sample's
+  reads are mapped to every assembly in its group, so a sample has reads
+  on `r min(per_sample$MAGs_detected)`–`r max(per_sample$MAGs_detected)` of
+  the `r nrow(flt)` MAGs, not only on its own.
+* **Classification (Table 3, `% of reads`).** Phylum to Family hold 100% of
+  reads because every MAG is named to Family. `r n_rank("Genus")` MAGs
+  (`r pct_rank("Genus")`% of reads) have a genus and `r n_rank("Species")`
+  (`r pct_rank("Species")`% of reads) a species; MAGs with a blank rank
+  drop out of that level's table.
+* **Composition (Table 3, `Most abundant`).** `r phy$Phylum[1]`
+  (`r phy$pct[1]`%), `r phy$Phylum[2]` (`r phy$pct[2]`%) and
+  `r phy$Phylum[3]` (`r phy$pct[3]`%) hold almost all reads. Bacillota_I is
+  the GTDB split of Bacillota that contains Erysipelotrichaceae
+  (Section 1.3), the leading family.
+* **Redundant MAGs.** MAGs are not dereplicated: the same genome recovered
+  from several samples appears as several MAGs (for example,
+  `r flt |> count(Species, sort = TRUE) |> filter(!is.na(Species)) |> slice(1) |> with(paste0(n, " MAGs of *", Species, "*"))`),
+  and a read can be counted in MAGs from different assemblies. Estimated
+  reads are therefore a relative measure, not a count of sequenced reads;
+  the level tables sum them per taxon.
+
+---
+
+# 4. Library size
+
+```r
+lib <- data.frame(reads = sample_sums(ps), sample_data(ps))
+wilcox.test(reads ~ gender, data = lib, exact = FALSE)             # two levels: one test
+wilcox.test(reads ~ fecal_color, data = lib, exact = FALSE)
+# fecal_odor (three levels): the same test for each pair of levels
+```
+
+Figure 1 shows the estimated reads of every sample as a bar, one panel per
+condition. Bars are coloured by group and sorted so that each group sits
+together, and the subtitle gives the nominal Wilcoxon rank-sum p of each
+comparison. Table 4 gives the minimum, median and maximum per group, and
+Table 5 the tests.
+
+```{r fig-library-gender, fig.cap = "Figure 1a. Library size by gender."}
+include_graphics(file.path(fig_dir, "04_library_size_gender.png"))
+```
+
+```{r fig-library-color, fig.cap = "Figure 1b. Library size by fecal_color."}
+include_graphics(file.path(fig_dir, "04_library_size_fecal_color.png"))
+```
+
+```{r fig-library-odor, fig.cap = "Figure 1c. Library size by fecal_odor."}
+include_graphics(file.path(fig_dir, "04_library_size_fecal_odor.png"))
+```
+
+```{r library}
+lib <- per_sample |> left_join(design, by = "Sample")
+lib_tests <- lapply(names(conditions), function(cn) {
+  lv <- conditions[[cn]]
+  prs <- combn(lv, 2, simplify = FALSE)
+  tibble(Condition = cn,
+         Comparison = sapply(prs, \(x) paste(x[1], "vs", x[2])),
+         p = sapply(prs, \(x) wilcox.test(lib$Reads[lib[[cn]] == x[1]],
+                                          lib$Reads[lib[[cn]] == x[2]], exact = FALSE)$p.value))
+}) |> bind_rows()
+lib_grp <- lapply(names(conditions), function(cn) {
+  lib |> mutate(Group = factor(.data[[cn]], levels = conditions[[cn]])) |>
+    group_by(Group) |>
+    summarise(n = n(), Min = min(Reads), Median = median(Reads), Max = max(Reads), .groups = "drop") |>
+    mutate(Condition = cn, .before = 1)
+}) |> bind_rows()
+lib_grp |> mutate(across(Min:Max, fmt)) |>
+  kable(caption = "Table 4. Estimated reads per sample by group")
+lib_tests |> mutate(p = pfmt(p)) |>
+  kable(caption = "Table 5. Wilcoxon rank-sum tests of library size (nominal p)")
+med_txt <- function(cn) lib_grp |> filter(Condition == cn) |>
+  with(paste0(Group, " ", fmt(Median / 1e6, 1), " M", collapse = ", "))
+p_txt <- function(cn) lib_tests |> filter(Condition == cn) |>
+  with(paste0(Comparison, " p = ", pfmt(p), collapse = "; "))
+top <- lib |> slice_max(Reads, n = 1)
+```
+
+* **gender (Figure 1a).** Median reads: `r med_txt("gender")`;
+  `r p_txt("gender")`.
+* **fecal_color (Figure 1b).** Median reads: `r med_txt("fecal_color")`;
+  `r p_txt("fecal_color")`.
+* **fecal_odor (Figure 1c).** Median reads: `r med_txt("fecal_odor")`;
+  `r p_txt("fecal_odor")`.
+
+Estimated reads vary `r fmt(max(lib$Reads) / min(lib$Reads), 1)`-fold
+across samples, from `r lib$Sample[which.min(lib$Reads)]` to
+`r top$Sample` (the tallest bar; gender `r top$gender`, fecal_color
+`r top$fecal_color`, fecal_odor `r top$fecal_odor`), but no comparison is significant in any condition (all
+p ≥ `r pfmt(min(lib_tests$p))`): there is no evidence that depth differs
+between groups. The depth range itself is handled by rarefaction for alpha
+diversity (Section 5) and by bias correction in ANCOM-BC2 (Section 10).
+
+---
+
+# 5. Alpha rarefaction
+
+```r
+otu <- t(as(otu_table(ps), "matrix"))                   # samples in rows
+# expected features per sample at each depth, and the depth that reaches 80% of observed
+sat <- sapply(rownames(otu), function(s) {
+  d <- round(10^seq(0, log10(sum(otu[s, ])), length.out = 400))
+  d[which(vegan::rarefy(otu[s, ], sample = d) >= 0.8 * sum(otu[s, ] > 0))[1]]
+})
+sat_point <- max(sat)                                   # saturation point (dashed line)
+ps_rare <- rarefy_even_depth(ps, sample.size = min(sample_sums(ps)), rngseed = 2026)
+# script: rarefy_ps(ps, min(sample_sums(ps))): the same draw without replacement, made with rhyper()
+```
+
+A rarefaction curve shows how many features (MAGs) are expected in a
+random subsample of a given number of reads, computed with vegan [31]. A
+curve that flattens means that more reads add few new MAGs. The **saturation
+point** is the depth at which every sample reaches 80% of its observed
+MAGs: each sample's saturation depth is the smallest depth at which its
+curve reaches 80% of its observed MAGs, and the largest of these is the
+saturation point.
+
+Figure 2 draws one curve per sample, coloured by group, one panel per
+condition. The x axis is untransformed estimated reads, limited to the low
+range where the curves bend; the dashed line marks the saturation point.
+The rarefaction depth (the smallest sample) lies far beyond this range and
+is given in the caption.
+
+```{r fig-rare-gender, fig.cap = "Figure 2a. Rarefaction curves by gender."}
+include_graphics(file.path(fig_dir, "05_alpha_rarefaction_gender.png"))
+```
+
+```{r fig-rare-color, fig.cap = "Figure 2b. Rarefaction curves by fecal_color."}
+include_graphics(file.path(fig_dir, "05_alpha_rarefaction_fecal_color.png"))
+```
+
+```{r fig-rare-odor, fig.cap = "Figure 2c. Rarefaction curves by fecal_odor."}
+include_graphics(file.path(fig_dir, "05_alpha_rarefaction_fecal_odor.png"))
+```
+
+```{r rarefaction}
+sat <- read_csv(sat_csv, show_col_types = FALSE) |>
+  left_join(design, by = c("sample_id" = "Sample"))
+sat_max <- sat |> slice_max(saturation_depth, n = 1)
+sat_2   <- sat |> arrange(desc(saturation_depth)) |> slice(2)
+low2    <- sat |> filter(sample_id %in% c(sat_max$sample_id, sat_2$sample_id))
+rare_depth <- min(sat$total_reads)
+sat |> arrange(desc(saturation_depth)) |> slice_head(n = 5) |>
+  select(sample_id, gender, fecal_color, fecal_odor, total_reads, observed, saturation_depth) |>
+  mutate(total_reads = fmt(total_reads), saturation_depth = fmt(saturation_depth)) |>
+  kable(caption = "Table 6. Samples with the largest saturation depths (results/gtdbtk/rarefaction_saturation_depth.csv)")
+sat_grp <- lapply(names(conditions), function(cn) {
+  sat |> mutate(Group = factor(.data[[cn]], levels = conditions[[cn]])) |>
+    group_by(Group) |>
+    summarise(n = n(), `Observed MAGs (median)` = median(observed),
+              `Observed MAGs (min-max)` = paste0(min(observed), "-", max(observed)),
+              `Saturation depth (median)` = fmt(median(saturation_depth)),
+              `Saturation depth (max)` = fmt(max(saturation_depth)), .groups = "drop") |>
+    mutate(Condition = cn, .before = 1)
+}) |> bind_rows()
+kable(sat_grp, caption = "Table 7. Observed MAGs and saturation depth by group")
+low_txt <- function(cn) {
+  g <- low2[[cn]]
+  if (length(unique(g)) == 1) paste0("both ", g[1], " samples") else paste(g, collapse = " and ")
+}
+grp_txt <- function(cn) sat_grp |> filter(Condition == cn) |>
+  with(paste0(Group, " ", `Observed MAGs (median)`, " MAGs and ", `Saturation depth (median)`, " reads",
+              collapse = "; "))
+```
+
+Table 6 lists the five samples that need the most reads to saturate, with
+their groups; Table 7 gives, per group, the median and range of observed
+MAGs and the median and largest saturation depth.
+
+* **Saturation point.** Half of the samples reach 80% of their observed
+  MAGs within `r fmt(median(sat$saturation_depth))` reads (range
+  `r fmt(min(sat$saturation_depth))`–`r fmt(sat_max$saturation_depth)`).
+  The saturation point, **`r fmt(sat_max$saturation_depth)` reads**, is set
+  by `r sat_max$sample_id`, followed by `r sat_2$sample_id`
+  (`r fmt(sat_2$saturation_depth)`). These two samples have the fewest
+  observed MAGs (`r sat_max$observed` and `r sat_2$observed`) and form the
+  two lowest curves in every panel.
+* **gender (Figure 2a).** Median observed MAGs and saturation depth: `r grp_txt("gender")`.
+  The two lowest curves are `r low_txt("gender")`; the other curves of
+  both groups overlap.
+* **fecal_color (Figure 2b).** Median observed MAGs and saturation depth: `r grp_txt("fecal_color")`.
+  The two lowest curves are `r low_txt("fecal_color")`; the other curves
+  of both groups overlap.
+* **fecal_odor (Figure 2c).** Median observed MAGs and saturation depth: `r grp_txt("fecal_odor")`.
+  Unpleasant samples have fewer MAGs and saturate later than the other two
+  groups, and include the four samples that need the most reads (Table 6).
+  The two lowest curves are `r low_txt("fecal_odor")`; the other curves
+  of all three groups overlap.
+
+* **Rarefaction depth.** The data are rarefied to the smallest sample,
+  `r fmt(rare_depth)` reads, more than 1,000 times the saturation point.
+  All curves are flat there, so rarefying keeps essentially all observed
+  MAGs. Rarefied data are used only for alpha diversity (Section 6).
+
+---
+
+# 6. Alpha diversity
+
+```r
+alpha <- ps_rare |>
+  ps_calc_richness(rank = "unique", index = "observed", varname = "Observed") |>
+  ps_calc_richness(rank = "unique", index = "chao1", varname = "Chao1") |>
+  ps_calc_diversity(rank = "unique", index = "shannon", varname = "Shannon") |>
+  ps_calc_diversity(rank = "unique", index = "gini_simpson", varname = "Simpson") |>
+  samdat_tbl()
+alpha$Pielou <- microbiome::evenness(ps_rare, index = "pielou")$pielou
+alpha$`Low-abundance rarity` <- microbiome::rarity(ps_rare, index = "low_abundance")$low_abundance
+wilcox.test(Shannon ~ gender, data = alpha, exact = FALSE)        # one test per pair of levels
+# script: a <- alpha_values(ps_rare); alpha_tests(a, "gender") etc., all six indices
+```
+
+Alpha diversity describes each sample on its own, from the data rarefied
+to `r fmt(rare_depth)` reads (Section 5). Six indices cover three aspects:
+
+| Index | Aspect | Meaning |
+|---|---|---|
+| Observed | richness | number of MAGs present |
+| Chao1 | richness | estimated total MAGs, adding unseen ones from singletons and doubletons |
+| Shannon | diversity | richness and evenness together; higher = more diverse |
+| Simpson | diversity | Gini–Simpson, 1 − Σ*p*²: chance that two random reads come from different MAGs |
+| Pielou | evenness | Shannon ÷ ln(Observed); 1 = all MAGs equally abundant |
+| Low-abundance rarity | rarity | share of reads in MAGs below 0.2% relative abundance |
+
+Figure 3 shows one panel per index for each condition: a box (median and
+interquartile range) per group, with one point per sample. The p-value
+above the boxes is a two-sided Wilcoxon rank-sum test, nominal; for
+fecal_odor, the three brackets give the three pairwise comparisons.
+Table 8 lists the group medians and Table 9 all p-values.
+
+```{r fig-alpha-gender, fig.cap = "Figure 3a. Alpha diversity by gender."}
+include_graphics(file.path(fig_dir, "06_alpha_diversity_gender.png"))
+```
+
+```{r fig-alpha-color, fig.cap = "Figure 3b. Alpha diversity by fecal_color."}
+include_graphics(file.path(fig_dir, "06_alpha_diversity_fecal_color.png"))
+```
+
+```{r fig-alpha-odor, fig.cap = "Figure 3c. Alpha diversity by fecal_odor."}
+include_graphics(file.path(fig_dir, "06_alpha_diversity_fecal_odor.png"))
+```
+
+```{r alpha}
+alpha_idx <- c("Observed", "Chao1", "Shannon", "Simpson", "Pielou", "Low-abundance rarity")
+alpha <- read_csv(alpha_csv, show_col_types = FALSE)
+atest <- read_csv(alpha_test_csv, show_col_types = FALSE) |>
+  mutate(Comparison = paste(group1, "vs", group2)) |>
+  arrange(factor(Condition, levels = names(conditions)))
+dig <- c(Observed = 1, Chao1 = 1, Shannon = 3, Simpson = 4, Pielou = 3, `Low-abundance rarity` = 3)
+lapply(names(conditions), function(cn) {
+  alpha |> mutate(Group = factor(.data[[cn]], levels = conditions[[cn]])) |>
+    group_by(Group) |>
+    summarise(n = n(), across(all_of(alpha_idx), median), .groups = "drop") |>
+    mutate(Condition = cn, .before = 1)
+}) |> bind_rows() |>
+  mutate(across(all_of(alpha_idx), \(x) formatC(x, format = "f", digits = dig[[cur_column()]]))) |>
+  kable(caption = "Table 8. Median alpha diversity by group (rarefied data)")
+atest |> mutate(p = pfmt(p)) |>
+  select(Condition, Comparison, Index, p) |>
+  pivot_wider(names_from = Index, values_from = p) |>
+  kable(caption = "Table 9. Two-sided Wilcoxon rank-sum p-values (nominal) for each comparison and index")
+# text helpers: comparisons with p < 0.10, with the direction of the medians
+hits <- function(cn) {
+  h <- atest |> filter(Condition == cn, p < 0.10, Index != "Chao1") |>
+    mutate(dir = ifelse(median2 < median1, "lower", "higher"),
+           txt = paste0(Index, " ", dir, " in ", group2, " than ", group1, " (p = ", pfmt(p), ")"))
+  if (nrow(h) == 0) "none" else paste(h$txt, collapse = "; ")
+}
+prange <- function(cn) atest |> filter(Condition == cn) |> with(paste(pfmt(min(p)), "to", pfmt(max(p))))
+n_sig <- sum(atest$p < 0.05)
+```
+
+* **gender (Figure 3a).** No index differs between female and male
+  (p = `r prange("gender")`). Comparisons with p < 0.10: `r hits("gender")`.
+* **fecal_color (Figure 3b).** No index differs between Normal and
+  Abnormally Dark (p = `r prange("fecal_color")`). Comparisons with
+  p < 0.10 (Chao1, identical to Observed, not repeated):
+  `r hits("fecal_color")`. The two lowest Observed and Chao1
+  values are Abnormally Dark samples (S11 and S1, Section 5).
+* **fecal_odor (Figure 3c).** p = `r prange("fecal_odor")` across the three
+  comparisons. Comparisons with p < 0.10 (Chao1 not repeated):
+  `r hits("fecal_odor")`.
+  Unpleasant samples therefore have fewer MAGs than Moderately Unpleasant
+  samples and less of their reads in rare MAGs than Normal samples, while
+  Shannon, Simpson and Pielou do not differ: richness and rarity change,
+  not diversity or evenness.
+
+Only `r n_sig` of the `r nrow(atest)` tests have p < 0.05 (Observed and Chao1
+for Moderately Unpleasant vs Unpleasant, low-abundance rarity for Normal vs
+Unpleasant), all for fecal_odor, and these p-values are not adjusted for the
+`r nrow(atest)` tests, so they are best read as leads, not firm
+differences. Chao1 equals Observed for every sample because the estimated
+reads contain no singletons or doubletons, so the two panels look alike.
+
+---
+
+# 7. Relative abundance
+
+```r
+ps_genus |> comp_barplot(tax_level = "Genus", n_taxa = 15, facet_by = "gender")      # per sample
+ps_genus |> tax_transform("compositional") |> ps_get() |>
+  merge_samples(group = "gender") |> comp_barplot(tax_level = "Genus", n_taxa = 15)  # per group
+```
+
+Relative abundance is each taxon's share of a sample's estimated reads,
+computed among the taxa kept at that level. At Genus and Species, MAGs
+without a name at that rank are left out (Section 3), so these shares
+describe only the named part of the community: 77.0% of reads at Genus
+and 59.5% at Species.
+
+Two kinds of stacked bar chart are shown for each condition:
+
+* **Overview (Figures 4, 6 and 8):** one panel per level, Phylum to Species, with one
+  bar per group showing the **mean relative abundance** of the 15 most
+  abundant taxa; the rest are merged into *Other* (grey).
+* **Per sample (Figures 5, 7 and 9):** one chart per level, one bar per sample,
+  faceted by group, with the same 15 taxa and colours.
+
+Table 10 gives the group means of the five most abundant taxa at Phylum,
+Family, Genus and Species
+(`results/gtdbtk/relative_abundance_by_group.csv` has every taxon and
+level for all three conditions).
+
+```{r relab-read}
+relab <- read_csv(relab_csv, show_col_types = FALSE)
+ra <- function(cn, level, taxon, group) relab |>
+  filter(Condition == cn, Level == level, Taxon == taxon, Group == group) |>
+  pull(mean_rel_abund) |> fmt(1)
+mean_tbl <- function(cn, n = 5) {
+  bind_rows(lapply(c("Phylum", "Family", "Genus", "Species"), function(r)
+    relab |> filter(Condition == cn, Level == r) |>
+      select(Taxon, Group, mean_rel_abund) |>
+      mutate(Group = factor(Group, levels = conditions[[cn]])) |>
+      pivot_wider(names_from = Group, values_from = mean_rel_abund) |>
+      arrange(desc(rowSums(across(-Taxon)))) |>
+      slice_head(n = n) |>
+      mutate(across(-Taxon, \(x) fmt(x, 1)), Level = r, .before = 1)))
+}
+# per-sample share of Bacillota_I (Phylum sheet)
+phy_rel <- readxl::read_excel(raw_xlsx, "Phylum")
+pm <- as.matrix(phy_rel[, design$Sample]); rownames(pm) <- phy_rel$Phylum
+b1 <- 100 * pm["Bacillota_I", ] / colSums(pm)
+low_b1 <- design |> mutate(b1 = b1[Sample]) |> filter(b1 < 25) |> arrange(b1)
+low_txt <- function(cn, g) {
+  x <- low_b1 |> filter(.data[[cn]] == g)
+  if (nrow(x) == 0) "none" else paste0(x$Sample, " (", trimws(fmt(x$b1, 1)), "%)", collapse = ", ")
+}
+ad <- design |> mutate(b1 = b1[Sample]) |> filter(fecal_color == "Abnormally Dark")
+ad_hi  <- ad |> filter(b1 >= 50)
+ad_mid <- ad |> filter(b1 >= 25, b1 < 50)
+b1_range <- function(cn, g) design |> mutate(b1 = b1[Sample]) |> filter(.data[[cn]] == g) |>
+  with(paste0(trimws(fmt(min(b1), 1)), "% to ", trimws(fmt(max(b1), 1)), "%"))
+```
+
+## 7.1 gender
+
+
+```r
+# Figure 4: mean relative abundance per group, one panel per level (script: relative_abundance_panel())
+ps_genus |> tax_transform("compositional", rank = "unique") |> ps_get() |>
+  merge_samples(group = "gender") |> comp_barplot(tax_level = "Genus", n_taxa = 15)
+# Figure 5: one bar per sample, faceted by group (script: plot_relative_abundance_samples())
+ps_genus |> comp_barplot(tax_level = "Genus", n_taxa = 15, facet_by = "gender")
+```
+
+```{r fig-relab-overview-gender, fig.cap = "Figure 4. Mean relative abundance of the 15 most abundant taxa per level, female vs male."}
+include_graphics(file.path(fig_dir, "07_relative_abundance_overview_gender.png"))
+```
+
+```{r relab-table-gender}
+mean_tbl("gender") |>
+  kable(caption = "Table 10a. Mean relative abundance (%) of the five most abundant taxa per level, by gender")
+```
+
+```{r fig-relab-gender-phylum, fig.cap = "Figure 5a. Relative abundance per sample at Phylum level, by gender."}
+include_graphics(file.path(fig_dir, "07_relative_abundance_samples_gender_phylum.png"))
+```
+
+```{r fig-relab-gender-class, fig.cap = "Figure 5b. Relative abundance per sample at Class level, by gender."}
+include_graphics(file.path(fig_dir, "07_relative_abundance_samples_gender_class.png"))
+```
+
+```{r fig-relab-gender-order, fig.cap = "Figure 5c. Relative abundance per sample at Order level, by gender."}
+include_graphics(file.path(fig_dir, "07_relative_abundance_samples_gender_order.png"))
+```
+
+```{r fig-relab-gender-family, fig.cap = "Figure 5d. Relative abundance per sample at Family level, by gender."}
+include_graphics(file.path(fig_dir, "07_relative_abundance_samples_gender_family.png"))
+```
+
+```{r fig-relab-gender-genus, fig.cap = "Figure 5e. Relative abundance per sample at Genus level, by gender."}
+include_graphics(file.path(fig_dir, "07_relative_abundance_samples_gender_genus.png"))
+```
+
+```{r fig-relab-gender-species, fig.cap = "Figure 5f. Relative abundance per sample at Species level, by gender."}
+include_graphics(file.path(fig_dir, "07_relative_abundance_samples_gender_species.png"))
+```
+
+**Overview (Figure 4, Table 10a).** Female and male bars are nearly
+identical at Phylum, Class and Order and differ by a few percentage points
+at Family; the larger differences are at Genus and Species:
+
+* **Phylum.** Bacillota_I (female `r ra("gender", "Phylum", "Bacillota_I", "female")`%,
+  male `r ra("gender", "Phylum", "Bacillota_I", "male")`%), Bacillota
+  (`r ra("gender", "Phylum", "Bacillota", "female")`% vs
+  `r ra("gender", "Phylum", "Bacillota", "male")`%) and Actinomycetota
+  (`r ra("gender", "Phylum", "Actinomycetota", "female")`% vs
+  `r ra("gender", "Phylum", "Actinomycetota", "male")`%) make up almost the
+  whole community; Fusobacteriota and Bacteroidota are below 0.5%.
+* **Family.** Erysipelotrichaceae dominates both groups
+  (`r ra("gender", "Family", "Erysipelotrichaceae", "female")`% vs
+  `r ra("gender", "Family", "Erysipelotrichaceae", "male")`%).
+  Lachnospiraceae is higher in females
+  (`r ra("gender", "Family", "Lachnospiraceae", "female")`% vs
+  `r ra("gender", "Family", "Lachnospiraceae", "male")`%) and
+  Bifidobacteriaceae in males
+  (`r ra("gender", "Family", "Bifidobacteriaceae", "female")`% vs
+  `r ra("gender", "Family", "Bifidobacteriaceae", "male")`%).
+* **Genus.** The largest differences appear here: *Allobaculum*
+  (`r ra("gender", "Genus", "Allobaculum", "female")`% vs
+  `r ra("gender", "Genus", "Allobaculum", "male")`%) and *Bifidobacterium*
+  (`r ra("gender", "Genus", "Bifidobacterium", "female")`% vs
+  `r ra("gender", "Genus", "Bifidobacterium", "male")`%) are higher in
+  males, *Faecalibaculum* in females
+  (`r ra("gender", "Genus", "Faecalibaculum", "female")`% vs
+  `r ra("gender", "Genus", "Faecalibaculum", "male")`%).
+* **Species.** *Allobaculum mucilyticum* is the most abundant species in
+  both groups (`r ra("gender", "Species", "Allobaculum mucilyticum", "female")`%
+  vs `r ra("gender", "Species", "Allobaculum mucilyticum", "male")`%);
+  *Bifidobacterium globosum* is higher in males
+  (`r ra("gender", "Species", "Bifidobacterium globosum", "female")`% vs
+  `r ra("gender", "Species", "Bifidobacterium globosum", "male")`%) and
+  *Collinsella intestinalis* in females
+  (`r ra("gender", "Species", "Collinsella intestinalis", "female")`% vs
+  `r ra("gender", "Species", "Collinsella intestinalis", "male")`%).
+
+**Per sample (Figure 5).** Samples differ far more within each group than
+the two group means differ from each other. Bacillota_I
+(Erysipelotrichaceae, Bacilli_A) is the largest phylum in
+`r sum(apply(pm, 2, which.max) == which(rownames(pm) == "Bacillota_I"))` of
+`r ncol(pm)` samples, but in
+`r nrow(low_b1)` samples it is below 25% and Bacillota (mainly
+Lachnospiraceae, Clostridia) is the largest phylum instead, with
+Actinomycetota often second: female
+`r low_txt("gender", "female")`; male `r low_txt("gender", "male")`. All eight are Abnormally Dark and
+Unpleasant (Sections 7.2 and 7.3), so this pattern follows the faecal
+conditions rather than gender. At Genus and Species,
+each sample has its own mix; for example, Peptococcaceae (UMGS1590) makes
+up about a third of S9, and *Mediterraneibacter gnavus* a quarter of S25.
+
+Group means are descriptive; whether any taxon differs between female and
+male is tested with ANCOM-BC2 (Section 10).
+
+## 7.2 fecal_color
+
+
+```r
+# Figure 6: mean relative abundance per group, one panel per level (script: relative_abundance_panel())
+ps_genus |> tax_transform("compositional", rank = "unique") |> ps_get() |>
+  merge_samples(group = "fecal_color") |> comp_barplot(tax_level = "Genus", n_taxa = 15)
+# Figure 7: one bar per sample, faceted by group (script: plot_relative_abundance_samples())
+ps_genus |> comp_barplot(tax_level = "Genus", n_taxa = 15, facet_by = "fecal_color")
+```
+
+```{r fig-relab-overview-color, fig.cap = "Figure 6. Mean relative abundance of the 15 most abundant taxa per level, Normal vs Abnormally Dark."}
+include_graphics(file.path(fig_dir, "07_relative_abundance_overview_fecal_color.png"))
+```
+
+```{r relab-table-color}
+mean_tbl("fecal_color") |>
+  kable(caption = "Table 10b. Mean relative abundance (%) of the five most abundant taxa per level, by fecal_color")
+```
+
+```{r fig-relab-color-phylum, fig.cap = "Figure 7a. Relative abundance per sample at Phylum level, by fecal_color."}
+include_graphics(file.path(fig_dir, "07_relative_abundance_samples_fecal_color_phylum.png"))
+```
+
+```{r fig-relab-color-class, fig.cap = "Figure 7b. Relative abundance per sample at Class level, by fecal_color."}
+include_graphics(file.path(fig_dir, "07_relative_abundance_samples_fecal_color_class.png"))
+```
+
+```{r fig-relab-color-order, fig.cap = "Figure 7c. Relative abundance per sample at Order level, by fecal_color."}
+include_graphics(file.path(fig_dir, "07_relative_abundance_samples_fecal_color_order.png"))
+```
+
+```{r fig-relab-color-family, fig.cap = "Figure 7d. Relative abundance per sample at Family level, by fecal_color."}
+include_graphics(file.path(fig_dir, "07_relative_abundance_samples_fecal_color_family.png"))
+```
+
+```{r fig-relab-color-genus, fig.cap = "Figure 7e. Relative abundance per sample at Genus level, by fecal_color."}
+include_graphics(file.path(fig_dir, "07_relative_abundance_samples_fecal_color_genus.png"))
+```
+
+```{r fig-relab-color-species, fig.cap = "Figure 7f. Relative abundance per sample at Species level, by fecal_color."}
+include_graphics(file.path(fig_dir, "07_relative_abundance_samples_fecal_color_species.png"))
+```
+
+**Overview (Figure 6, Table 10b).** Unlike gender, fecal_color separates
+the two groups clearly from Phylum down; values are Normal vs Abnormally Dark:
+
+* **Phylum.** Bacillota_I falls (`r ra("fecal_color", "Phylum", "Bacillota_I", "Normal")`% vs `r ra("fecal_color", "Phylum", "Bacillota_I", "Abnormally Dark")`%), while
+  Bacillota rises (`r ra("fecal_color", "Phylum", "Bacillota", "Normal")`% vs `r ra("fecal_color", "Phylum", "Bacillota", "Abnormally Dark")`%) and Actinomycetota rises
+  slightly (`r ra("fecal_color", "Phylum", "Actinomycetota", "Normal")`% vs `r ra("fecal_color", "Phylum", "Actinomycetota", "Abnormally Dark")`%).
+* **Class and Family.** The drop in Bacilli_A is the drop in
+  Erysipelotrichaceae (`r ra("fecal_color", "Family", "Erysipelotrichaceae", "Normal")`% vs `r ra("fecal_color", "Family", "Erysipelotrichaceae", "Abnormally Dark")`%). It is offset
+  by Lachnospiraceae (`r ra("fecal_color", "Family", "Lachnospiraceae", "Normal")`% vs `r ra("fecal_color", "Family", "Lachnospiraceae", "Abnormally Dark")`%), Coriobacteriaceae
+  (`r ra("fecal_color", "Family", "Coriobacteriaceae", "Normal")`% vs `r ra("fecal_color", "Family", "Coriobacteriaceae", "Abnormally Dark")`%) and Peptococcaceae
+  (`r ra("fecal_color", "Family", "Peptococcaceae", "Normal")`% vs `r ra("fecal_color", "Family", "Peptococcaceae", "Abnormally Dark")`%); Bifidobacteriaceae goes the other way
+  (`r ra("fecal_color", "Family", "Bifidobacteriaceae", "Normal")`% vs `r ra("fecal_color", "Family", "Bifidobacteriaceae", "Abnormally Dark")`%).
+* **Genus.** *Allobaculum* falls (`r ra("fecal_color", "Genus", "Allobaculum", "Normal")`% vs `r ra("fecal_color", "Genus", "Allobaculum", "Abnormally Dark")`%) and
+  *Bifidobacterium* falls (`r ra("fecal_color", "Genus", "Bifidobacterium", "Normal")`% vs `r ra("fecal_color", "Genus", "Bifidobacterium", "Abnormally Dark")`%), while
+  *Collinsella* (`r ra("fecal_color", "Genus", "Collinsella", "Normal")`% vs `r ra("fecal_color", "Genus", "Collinsella", "Abnormally Dark")`%) and UMGS1590
+  (`r ra("fecal_color", "Genus", "UMGS1590", "Normal")`% vs `r ra("fecal_color", "Genus", "UMGS1590", "Abnormally Dark")`%) rise.
+* **Species.** The same pattern at species level: *Allobaculum
+  mucilyticum* (`r ra("fecal_color", "Species", "Allobaculum mucilyticum", "Normal")`% vs `r ra("fecal_color", "Species", "Allobaculum mucilyticum", "Abnormally Dark")`%) and
+  *Bifidobacterium globosum* (`r ra("fecal_color", "Species", "Bifidobacterium globosum", "Normal")`% vs `r ra("fecal_color", "Species", "Bifidobacterium globosum", "Abnormally Dark")`%)
+  are lower, *Collinsella intestinalis*
+  (`r ra("fecal_color", "Species", "Collinsella intestinalis", "Normal")`% vs `r ra("fecal_color", "Species", "Collinsella intestinalis", "Abnormally Dark")`%) and UMGS1590 sp900553245
+  (`r ra("fecal_color", "Species", "UMGS1590 sp900553245", "Normal")`% vs `r ra("fecal_color", "Species", "UMGS1590 sp900553245", "Abnormally Dark")`%) higher in Abnormally Dark.
+
+**Per sample (Figure 7).** The group means hide a split within the
+Abnormally Dark group. Every Normal sample is dominated by Bacillota_I
+(`r b1_range("fecal_color", "Normal")`), and so are
+`r ad_hi |> nrow()` Abnormally Dark samples
+(`r paste(ad_hi$Sample, collapse = ", ")`); `r paste0(ad_mid$Sample, " (", trimws(fmt(ad_mid$b1, 1)), "%)", collapse = ", ")`
+is intermediate. All `r nrow(low_b1)` samples with less than 25%
+Bacillota_I are Abnormally Dark: `r low_txt("fecal_color", "Abnormally Dark")`. In
+these samples Lachnospiraceae (Clostridia), Coriobacteriaceae
+(*Collinsella*) and Peptococcaceae (UMGS1590) replace Erysipelotrichaceae
+(*Allobaculum*). The difference in means is therefore driven by
+`r sum(low_b1$fecal_color == "Abnormally Dark")` of the
+`r sum(design$fecal_color == "Abnormally Dark")` Abnormally Dark samples,
+not by a shift shared by all of them. These samples are the Unpleasant
+ones (Section 7.3, Table 2). ANCOM-BC2 tests these differences formally
+(Section 10).
+
+## 7.3 fecal_odor
+
+
+```r
+# Figure 8: mean relative abundance per group, one panel per level (script: relative_abundance_panel())
+ps_genus |> tax_transform("compositional", rank = "unique") |> ps_get() |>
+  merge_samples(group = "fecal_odor") |> comp_barplot(tax_level = "Genus", n_taxa = 15)
+# Figure 9: one bar per sample, faceted by group (script: plot_relative_abundance_samples())
+ps_genus |> comp_barplot(tax_level = "Genus", n_taxa = 15, facet_by = "fecal_odor")
+```
+
+```{r fig-relab-overview-odor, fig.cap = "Figure 8. Mean relative abundance of the 15 most abundant taxa per level, Normal vs Moderately Unpleasant vs Unpleasant."}
+include_graphics(file.path(fig_dir, "07_relative_abundance_overview_fecal_odor.png"))
+```
+
+```{r relab-table-odor}
+mean_tbl("fecal_odor") |>
+  kable(caption = "Table 10c. Mean relative abundance (%) of the five most abundant taxa per level, by fecal_odor")
+```
+
+```{r fig-relab-odor-phylum, fig.cap = "Figure 9a. Relative abundance per sample at Phylum level, by fecal_odor."}
+include_graphics(file.path(fig_dir, "07_relative_abundance_samples_fecal_odor_phylum.png"))
+```
+
+```{r fig-relab-odor-class, fig.cap = "Figure 9b. Relative abundance per sample at Class level, by fecal_odor."}
+include_graphics(file.path(fig_dir, "07_relative_abundance_samples_fecal_odor_class.png"))
+```
+
+```{r fig-relab-odor-order, fig.cap = "Figure 9c. Relative abundance per sample at Order level, by fecal_odor."}
+include_graphics(file.path(fig_dir, "07_relative_abundance_samples_fecal_odor_order.png"))
+```
+
+```{r fig-relab-odor-family, fig.cap = "Figure 9d. Relative abundance per sample at Family level, by fecal_odor."}
+include_graphics(file.path(fig_dir, "07_relative_abundance_samples_fecal_odor_family.png"))
+```
+
+```{r fig-relab-odor-genus, fig.cap = "Figure 9e. Relative abundance per sample at Genus level, by fecal_odor."}
+include_graphics(file.path(fig_dir, "07_relative_abundance_samples_fecal_odor_genus.png"))
+```
+
+```{r fig-relab-odor-species, fig.cap = "Figure 9f. Relative abundance per sample at Species level, by fecal_odor."}
+include_graphics(file.path(fig_dir, "07_relative_abundance_samples_fecal_odor_species.png"))
+```
+
+**Overview (Figure 8, Table 10c).** Normal and Moderately Unpleasant are
+almost identical at every level; Unpleasant is the group that differs.
+Values are Normal, Moderately Unpleasant and Unpleasant:
+
+* **Phylum.** Bacillota_I `r ra("fecal_odor", "Phylum", "Bacillota_I", "Normal")`%, `r ra("fecal_odor", "Phylum", "Bacillota_I", "Moderately Unpleasant")`% and `r ra("fecal_odor", "Phylum", "Bacillota_I", "Unpleasant")`%; Bacillota
+  `r ra("fecal_odor", "Phylum", "Bacillota", "Normal")`%, `r ra("fecal_odor", "Phylum", "Bacillota", "Moderately Unpleasant")`% and `r ra("fecal_odor", "Phylum", "Bacillota", "Unpleasant")`%; Actinomycetota `r ra("fecal_odor", "Phylum", "Actinomycetota", "Normal")`%, `r ra("fecal_odor", "Phylum", "Actinomycetota", "Moderately Unpleasant")`% and `r ra("fecal_odor", "Phylum", "Actinomycetota", "Unpleasant")`%.
+  In Unpleasant samples Bacillota replaces Bacillota_I as the main phylum.
+* **Family.** Erysipelotrichaceae `r ra("fecal_odor", "Family", "Erysipelotrichaceae", "Normal")`%, `r ra("fecal_odor", "Family", "Erysipelotrichaceae", "Moderately Unpleasant")`% and `r ra("fecal_odor", "Family", "Erysipelotrichaceae", "Unpleasant")`%,
+  against Lachnospiraceae `r ra("fecal_odor", "Family", "Lachnospiraceae", "Normal")`%, `r ra("fecal_odor", "Family", "Lachnospiraceae", "Moderately Unpleasant")`% and `r ra("fecal_odor", "Family", "Lachnospiraceae", "Unpleasant")`%,
+  Coriobacteriaceae `r ra("fecal_odor", "Family", "Coriobacteriaceae", "Normal")`%, `r ra("fecal_odor", "Family", "Coriobacteriaceae", "Moderately Unpleasant")`% and `r ra("fecal_odor", "Family", "Coriobacteriaceae", "Unpleasant")`% and Peptococcaceae
+  `r ra("fecal_odor", "Family", "Peptococcaceae", "Normal")`%, `r ra("fecal_odor", "Family", "Peptococcaceae", "Moderately Unpleasant")`% and `r ra("fecal_odor", "Family", "Peptococcaceae", "Unpleasant")`%. Bifidobacteriaceae is lowest in
+  Unpleasant (`r ra("fecal_odor", "Family", "Bifidobacteriaceae", "Normal")`%, `r ra("fecal_odor", "Family", "Bifidobacteriaceae", "Moderately Unpleasant")`% and `r ra("fecal_odor", "Family", "Bifidobacteriaceae", "Unpleasant")`%).
+* **Genus.** *Allobaculum* `r ra("fecal_odor", "Genus", "Allobaculum", "Normal")`%, `r ra("fecal_odor", "Genus", "Allobaculum", "Moderately Unpleasant")`% and `r ra("fecal_odor", "Genus", "Allobaculum", "Unpleasant")`% and
+  *Faecalibaculum* `r ra("fecal_odor", "Genus", "Faecalibaculum", "Normal")`%, `r ra("fecal_odor", "Genus", "Faecalibaculum", "Moderately Unpleasant")`% and `r ra("fecal_odor", "Genus", "Faecalibaculum", "Unpleasant")`% almost disappear in
+  Unpleasant, while *Collinsella* `r ra("fecal_odor", "Genus", "Collinsella", "Normal")`%, `r ra("fecal_odor", "Genus", "Collinsella", "Moderately Unpleasant")`% and `r ra("fecal_odor", "Genus", "Collinsella", "Unpleasant")`%, UMGS1590
+  `r ra("fecal_odor", "Genus", "UMGS1590", "Normal")`%, `r ra("fecal_odor", "Genus", "UMGS1590", "Moderately Unpleasant")`% and `r ra("fecal_odor", "Genus", "UMGS1590", "Unpleasant")`% and *Blautia_A* `r ra("fecal_odor", "Genus", "Blautia_A", "Normal")`%, `r ra("fecal_odor", "Genus", "Blautia_A", "Moderately Unpleasant")`% and `r ra("fecal_odor", "Genus", "Blautia_A", "Unpleasant")`%
+  rise.
+* **Species.** *Allobaculum mucilyticum*
+  `r ra("fecal_odor", "Species", "Allobaculum mucilyticum", "Normal")`%, `r ra("fecal_odor", "Species", "Allobaculum mucilyticum", "Moderately Unpleasant")`% and `r ra("fecal_odor", "Species", "Allobaculum mucilyticum", "Unpleasant")`% and *Bifidobacterium
+  globosum* `r ra("fecal_odor", "Species", "Bifidobacterium globosum", "Normal")`%, `r ra("fecal_odor", "Species", "Bifidobacterium globosum", "Moderately Unpleasant")`% and `r ra("fecal_odor", "Species", "Bifidobacterium globosum", "Unpleasant")`% against
+  *Collinsella intestinalis* `r ra("fecal_odor", "Species", "Collinsella intestinalis", "Normal")`%, `r ra("fecal_odor", "Species", "Collinsella intestinalis", "Moderately Unpleasant")`% and `r ra("fecal_odor", "Species", "Collinsella intestinalis", "Unpleasant")`%
+  and UMGS1590 sp900553245 `r ra("fecal_odor", "Species", "UMGS1590 sp900553245", "Normal")`%, `r ra("fecal_odor", "Species", "UMGS1590 sp900553245", "Moderately Unpleasant")`% and `r ra("fecal_odor", "Species", "UMGS1590 sp900553245", "Unpleasant")`%.
+
+**Per sample (Figure 9).** Here the per-sample bars match the group
+means. Bacillota_I dominates every Normal sample
+(`r b1_range("fecal_odor", "Normal")`) and every Moderately Unpleasant sample
+(`r b1_range("fecal_odor", "Moderately Unpleasant")`), but no Unpleasant sample
+(`r b1_range("fecal_odor", "Unpleasant")`). All `r nrow(low_b1)` samples with less
+than 25% Bacillota_I are Unpleasant: `r low_txt("fecal_odor", "Unpleasant")`; the
+ninth, S8, is intermediate. The Abnormally Dark split seen in Section 7.2
+is the same split: the Abnormally Dark samples low in Bacillota_I are the
+Unpleasant ones, and those that look Normal are Moderately Unpleasant
+(Table 2). ANCOM-BC2 tests each pairwise comparison (Section 10).
+
+---
+
+# 8. Beta diversity (Bray–Curtis PCoA)
+
+```r
+ps |> tax_transform("compositional", rank = "unique") |>   # MAG-level relative abundance
+  dist_calc("bray") |> ord_calc(method = "PCoA") |>
+  ord_plot(colour = "gender")                              # also "fecal_color", "fecal_odor"
+# script: b <- pcoa_bray(ps); plot_pcoa(b, "gender", ...)
+```
+
+Beta diversity compares samples with each other. The Bray–Curtis
+dissimilarity between two samples is 0 when they have the same MAGs in the
+same proportions and 1 when they share none. It is computed here on the
+relative abundance of all `r nrow(flt)` MAGs (not rarefied), and principal
+coordinates analysis (PCoA) places the samples in two dimensions so that
+distances between points approximate these dissimilarities.
+
+Figure 10 shows the same ordination three times, coloured by each
+condition. Each point is a sample, labelled with its ID; the axis titles
+give the share of the variation captured by each axis, and the dashed
+outline encloses all samples of a group (rounded convex hull). Table 11
+gives, for each group, the range and median of the samples' MDS1
+coordinates.
+
+```{r fig-pcoa-gender, fig.cap = "Figure 10a. Bray-Curtis PCoA of bacterial MAGs, coloured by gender."}
+include_graphics(file.path(fig_dir, "08_pcoa_bray_gender.png"))
+```
+
+```{r fig-pcoa-color, fig.cap = "Figure 10b. Bray-Curtis PCoA of bacterial MAGs, coloured by fecal_color."}
+include_graphics(file.path(fig_dir, "08_pcoa_bray_fecal_color.png"))
+```
+
+```{r fig-pcoa-odor, fig.cap = "Figure 10c. Bray-Curtis PCoA of bacterial MAGs, coloured by fecal_odor."}
+include_graphics(file.path(fig_dir, "08_pcoa_bray_fecal_odor.png"))
+```
+
+```{r pcoa}
+pc <- read_csv(pcoa_csv, show_col_types = FALSE)
+pax <- read_csv(pcoa_ax_csv, show_col_types = FALSE)
+pc_grp <- lapply(names(conditions), function(cn) {
+  pc |> mutate(Group = factor(.data[[cn]], levels = conditions[[cn]])) |>
+    group_by(Group) |>
+    summarise(n = n(), `MDS1 min` = min(MDS1), `MDS1 median` = median(MDS1),
+              `MDS1 max` = max(MDS1), .groups = "drop") |>
+    mutate(Condition = cn, .before = 1)
+}) |> bind_rows()
+pc_grp |> mutate(across(starts_with("MDS1"), \(x) formatC(x, format = "f", digits = 2))) |>
+  kable(caption = "Table 11. MDS1 coordinates of the samples in each group (results/gtdbtk/pcoa_bray_coordinates.csv)")
+mds <- function(cn, g, f) formatC(f(pc$MDS1[pc[[cn]] == g]), format = "f", digits = 2)
+neg <- pc |> filter(MDS1 < 0)
+s25 <- pc |> slice_min(MDS2, n = 1)
+```
+
+MDS1 captures `r pax$pct_variance[1]`% of the variation and MDS2
+`r fmt(pax$pct_variance[2], 1)`%, so the main structure lies along MDS1. The samples
+fall into two clusters on this axis with no sample between them: `r nrow(neg)`
+samples on the left (MDS1 `r formatC(min(neg$MDS1), format = "f", digits = 2)` to
+`r formatC(max(neg$MDS1), format = "f", digits = 2)`) and the other
+`r nrow(pc) - nrow(neg)` on the right (`r formatC(min(pc$MDS1[pc$MDS1 > 0]), format = "f", digits = 2)` to
+`r formatC(max(pc$MDS1), format = "f", digits = 2)`). The left cluster is the
+group low in Bacillota_I (Section 7).
+
+* **gender (Figure 10a).** Female (`r mds("gender", "female", min)` to
+  `r mds("gender", "female", max)`) and male (`r mds("gender", "male", min)`
+  to `r mds("gender", "male", max)`) samples occur in both clusters and their
+  hulls largely overlap; gender does not structure the community.
+* **fecal_color (Figure 10b).** All Normal samples are in the right cluster
+  (MDS1 `r mds("fecal_color", "Normal", min)` to `r mds("fecal_color", "Normal", max)`).
+  Abnormally Dark samples spread across both clusters
+  (`r mds("fecal_color", "Abnormally Dark", min)` to `r mds("fecal_color", "Abnormally Dark", max)`):
+  `r sum(neg$fecal_color == "Abnormally Dark")` on the left and
+  `r sum(pc$fecal_color == "Abnormally Dark" & pc$MDS1 > 0)`
+  (`r paste(pc$Sample[pc$fecal_color == "Abnormally Dark" & pc$MDS1 > 0], collapse = ", ")`)
+  among the Normal samples, so the two hulls overlap on the right.
+* **fecal_odor (Figure 10c).** The left cluster is exactly the
+  `r sum(pc$fecal_odor == "Unpleasant")` Unpleasant samples
+  (`r mds("fecal_odor", "Unpleasant", min)` to `r mds("fecal_odor", "Unpleasant", max)`), and its hull
+  does not touch the others. Normal (`r mds("fecal_odor", "Normal", min)` to
+  `r mds("fecal_odor", "Normal", max)`) and Moderately Unpleasant
+  (`r mds("fecal_odor", "Moderately Unpleasant", min)` to
+  `r mds("fecal_odor", "Moderately Unpleasant", max)`) are intermixed in the
+  right cluster, with the Moderately Unpleasant hull lying almost entirely within the Normal one.
+
+Along MDS2, `r s25$Sample` (gender `r s25$gender`, fecal_color `r s25$fecal_color`, fecal_odor `r s25$fecal_odor`) lies apart
+from all other samples, at the bottom of every panel; it carries an
+unusually large share of *Mediterraneibacter gnavus* (Section 7.1).
+Whether these patterns are statistically supported is tested with
+PERMANOVA (Section 9).
+
+---
+
+# 9. PERMANOVA by level
+
+```r
+d <- ps |> tax_transform("compositional", rank = "unique") |> dist_calc("bray")
+d |> dist_permanova(variables = "gender", n_perms = 9999, seed = 2026) |> perm_get()  # PERMANOVA
+d |> dist_bdisp(variables = "gender") |> bdisp_get()                                  # PERMDISP
+```
+
+PERMANOVA [33] tests whether the groups differ in their centre (centroid)
+in Bray–Curtis space, that is, in overall community composition. R² is the
+share of the variation between samples explained by the condition. A
+significant PERMANOVA can also arise when groups differ only in spread, so
+PERMDISP [34] tests the spread (distance of each sample to its group
+centroid) separately. Both use 9,999 permutations, so the smallest possible
+p is 0.0001. The tests are run on all MAGs and on each level from Phylum to
+Species, and p-values are Benjamini–Hochberg adjusted across these seven
+tests (p_adj) [35]. Each PERMANOVA table below has one row per level: the
+number of features (MAGs or taxa) tested, R² as a percentage, the PERMANOVA p and
+p_adj, and the PERMDISP p and p_adj.
+
+```{r perm-read}
+perm_tbl <- function(cn) {
+  read_csv(perm_csv[[cn]], show_col_types = FALSE) |>
+    mutate(Level = factor(Level, levels = c("All features", ranks))) |>
+    arrange(Comparison != "All groups", Comparison, Level)
+}
+perm_kable <- function(x, caption) x |>
+  transmute(Level = as.character(Level), Features = fmt(Features), `R² (%)` = fmt(100 * R2, 2),
+            p = pq(p), p_adj = pq(p_adj), `PERMDISP p` = pq(PERMDISP_p), `PERMDISP p_adj` = pq(PERMDISP_p_adj)) |>
+  ctab(caption)
+disp <- read_csv(disp_csv, show_col_types = FALSE)
+dsp <- function(cn, lv, g) disp |> filter(Condition == cn, Level == lv, Group == g) |>
+  pull(mean_distance_to_centroid) |> formatC(format = "f", digits = 3)
+prng <- function(x, col) paste(p4(min(x[[col]])), "to", p4(max(x[[col]])))
+```
+
+## 9.1 gender
+
+
+```r
+d  <- ps |> tax_transform("compositional", rank = "unique") |> dist_calc("bray")   # all MAGs; repeated per level
+d |> dist_permanova(variables = "gender", n_perms = 9999, seed = 2026) |> perm_get()
+bd <- d |> dist_bdisp(variables = "gender", method = "centroid") |> bdisp_get()
+vegan::permutest(bd$gender$model, permutations = 9999)          # PERMDISP p
+# script: permanova_bray(ps, "All features", "gender"); p_adj = p.adjust(p, "BH") over the 7 tests
+```
+
+```{r perm-gender}
+pg <- perm_tbl("gender")
+perm_kable(pg, "Table 12a. PERMANOVA and PERMDISP by gender (Bray-Curtis, 9,999 permutations; p_adj = BH across levels)")
+pg_all <- pg |> filter(Level == "All features")
+```
+
+* **Composition.** Gender explains only
+  `r fmt(100 * min(pg$R2), 1)`–`r fmt(100 * max(pg$R2), 1)`% of the
+  variation at any level (`r fmt(100 * pg_all$R2, 1)`% for all
+  `r pg_all$Features` MAGs), and no test is significant
+  (p = `r p4(min(pg$p))`–`r p4(max(pg$p))`; p_adj ≥ `r p4(min(pg$p_adj))`).
+* **Spread.** PERMDISP is not significant at any level
+  (p = `r p4(min(pg$PERMDISP_p))`–`r p4(max(pg$PERMDISP_p))`), so
+  female and male samples are equally variable.
+
+This agrees with the overlapping hulls in Figure 10a and the similar group
+means in Section 7.1: gender is not associated with community composition
+in these samples.
+
+## 9.2 fecal_color
+
+
+```r
+d  <- ps |> tax_transform("compositional", rank = "unique") |> dist_calc("bray")   # all MAGs; repeated per level
+d |> dist_permanova(variables = "fecal_color", n_perms = 9999, seed = 2026) |> perm_get()
+bd <- d |> dist_bdisp(variables = "fecal_color", method = "centroid") |> bdisp_get()
+vegan::permutest(bd$fecal_color$model, permutations = 9999)          # PERMDISP p
+# script: permanova_bray(ps, "All features", "fecal_color"); p_adj = p.adjust(p, "BH") over the 7 tests
+```
+
+```{r perm-color}
+pc9 <- perm_tbl("fecal_color")
+perm_kable(pc9, "Table 12b. PERMANOVA and PERMDISP by fecal_color (Bray-Curtis, 9,999 permutations; p_adj = BH across levels)")
+pc9_all <- pc9 |> filter(Level == "All features")
+```
+
+* **Composition.** fecal_color explains
+  `r fmt(100 * min(pc9$R2), 1)`–`r fmt(100 * max(pc9$R2), 1)`% of the
+  variation (`r fmt(100 * pc9_all$R2, 1)`% for all MAGs, highest at
+  `r pc9$Level[which.max(pc9$R2)]`), and every level is significant
+  (p_adj `r prng(pc9, "p_adj")`).
+* **Spread.** PERMDISP is also significant at every level (p_adj
+  `r prng(pc9, "PERMDISP_p_adj")`): Abnormally Dark samples lie much
+  farther from their centroid than Normal samples (mean distance to centroid for all MAGs
+  `r dsp("fecal_color", "All features", "Abnormally Dark")` vs
+  `r dsp("fecal_color", "All features", "Normal")`).
+
+The Abnormally Dark group is spread across both PCoA clusters
+(Figure 10b), so part of the PERMANOVA signal comes from this larger
+spread rather than from a shift of the whole group. fecal_color is
+associated with composition, but the result should be read together with
+fecal_odor (Section 9.3, Table 2).
+
+## 9.3 fecal_odor
+
+
+```r
+d  <- ps |> tax_transform("compositional", rank = "unique") |> dist_calc("bray")   # all MAGs; repeated per level
+d |> dist_permanova(variables = "fecal_odor", n_perms = 9999, seed = 2026) |> perm_get()  # all three groups in one test
+bd <- d |> dist_bdisp(variables = "fecal_odor", method = "centroid") |> bdisp_get()
+vegan::permutest(bd$fecal_odor$model, permutations = 9999)          # PERMDISP p
+# script: permanova_bray(ps, "All features", "fecal_odor"); p_adj = p.adjust(p, "BH") over the 7 tests
+```
+
+```{r perm-odor}
+po9 <- perm_tbl("fecal_odor")
+perm_kable(po9, "Table 12c. PERMANOVA and PERMDISP by fecal_odor, all three groups together (Bray-Curtis, 9,999 permutations; p_adj = BH across levels)")
+po9_all <- po9 |> filter(Level == "All features")
+po9_dsig <- po9 |> filter(PERMDISP_p_adj < 0.05)
+po9_dns  <- po9 |> filter(PERMDISP_p_adj >= 0.05)
+```
+
+* **Composition.** fecal_odor explains the most variation of the three
+  conditions: `r fmt(100 * min(po9$R2), 1)`–`r fmt(100 * max(po9$R2), 1)`%
+  (`r fmt(100 * po9_all$R2, 1)`% for all MAGs, `r fmt(100 * max(po9$R2), 1)`%
+  at `r po9$Level[which.max(po9$R2)]`), with p = `r p4(max(po9$p))` at every
+  level, the smallest value 9,999 permutations can give.
+* **Spread.** PERMDISP is significant for
+  `r knitr::combine_words(as.character(po9_dsig$Level))` (p_adj
+  `r prng(po9_dsig, "PERMDISP_p_adj")`), where Unpleasant samples are the
+  most spread out (mean distance to centroid for Family
+  `r dsp("fecal_odor", "Family", "Unpleasant")` vs
+  `r dsp("fecal_odor", "Family", "Normal")` Normal and
+  `r dsp("fecal_odor", "Family", "Moderately Unpleasant")` Moderately
+  Unpleasant). It is not significant for
+  `r knitr::combine_words(as.character(po9_dns$Level))` (p_adj
+  `r prng(po9_dns, "PERMDISP_p_adj")`), where R² is still
+  `r fmt(100 * min(po9_dns$R2), 1)`–`r fmt(100 * max(po9_dns$R2), 1)`%.
+
+At these levels the groups have similar spread, so the large R² reflects a
+genuine difference in composition. Together with Figure 10c, where the
+Unpleasant samples form a separate cluster, this points to Unpleasant as
+the group that differs. The test compares all three groups at once; it does not
+say which pairs differ. Differences between pairs of groups are tested
+for individual taxa with ANCOM-BC2 (Section 10).
+
+---
+
+# 10. Differential abundance (ANCOM-BC2)
+
+```r
+res <- ANCOMBC::ancombc2(data = ps, tax_level = "Genus", fix_formula = "gender",
+                         p_adj_method = "holm", prv_cut = 0.10, pseudo_sens = TRUE)
+res$res   # lfc_, q_, diff_ and passed_ss_ columns for male vs female (one run per comparison, below)
+```
+
+ANCOM-BC2 [32] tests each taxon for a difference in abundance between two
+groups. It estimates and removes the sample-specific sampling bias of
+compositional data and reports, per taxon, a bias-corrected
+**log-fold change** (LFC, natural log, second group vs reference; LFC > 0
+means higher in the second group).
+
+* **Comparisons.** One per pair of groups, in this order: male vs female;
+  Abnormally Dark vs Normal; and, for fecal_odor, Moderately Unpleasant vs
+  Normal, Unpleasant vs Normal and Unpleasant vs Moderately Unpleasant.
+* **Bias.** The sampling bias is estimated from all bacterial MAGs and the
+  tests run on the taxa of each level.
+* **Fits.** Taxa present in 10% of samples or fewer are skipped by the
+  primary fit and refitted with a pseudo-count of 1, so every taxon is
+  tested.
+* **Adjustment.** q-values are Holm-adjusted over the taxa of each level
+  [36]. Each taxon also gets a nominal Wilcoxon rank-sum p for comparison.
+* **Robust.** A taxon counts as robust when q < 0.05 *and* it passes the
+  pseudo-count sensitivity analysis.
+
+For each comparison, a summary table gives per level the number of taxa
+tested, how many have Wilcoxon p < 0.05, how many reach q < 0.05, how many
+of those are robust, and in which group the robust taxa are higher. Each
+level then has a table of the ten lowest-p taxa (mean relative abundance
+per group, number of samples in which the taxon is present, LFC, p, q,
+Wilcoxon p, robust or not) and a figure of the five lowest-p taxa,
+shown regardless of significance, as per-sample relative abundance (%)
+with the LFC, p and q in each panel title.
+
+```{r ancom-fun}
+anc_read <- function(f) { s <- readxl::excel_sheets(f); setNames(lapply(s, \(x) readxl::read_excel(f, sheet = x)), s) }
+gcol <- function(g) gsub(" ", "_", g)
+# columns shared by every ANCOM-BC2 feature table (taxa and functions)
+feat_cols <- function(d, g) {
+  out <- tibble(a = formatC(d[[paste0("mean_rel_abund_", gcol(g[1]))]], format = "f", digits = 4),
+                b = formatC(d[[paste0("mean_rel_abund_", gcol(g[2]))]], format = "f", digits = 4),
+                Present = paste0(d[[paste0("n_present_", gcol(g[1]))]], "/", d[[paste0("n_present_", gcol(g[2]))]]),
+                LFC = formatC(d$lfc, format = "f", digits = 2), p = pq(d$p), q = pq(d$q),
+                `Wilcoxon p` = pq(d$wilcox_p_nominal),
+                Robust = ifelse(d$significant, "yes", "no"),
+                Fit = ifelse(d$ancombc2_fit == "primary", "primary", "pseudo-count 1"))
+  names(out)[1:2] <- paste0(g, " %")
+  out
+}
+anc_tbl <- function(a, r, cn, n = 10, tab_no, g = conditions[[cn]][1:2]) {
+  d <- a[[r]] |> arrange(p) |> slice_head(n = n)
+  bind_cols(tibble(Taxon = d[[r]]), feat_cols(d, g)) |>
+    ctab(sprintf("Table %s. ANCOM-BC2, %s, %s vs %s (%d taxa; ten lowest p). Present = samples with reads, %s/%s.",
+                            tab_no, r, g[2], g[1], nrow(a[[r]]), g[1], g[2]))
+}
+at <- function(a, r, taxon) a[[r]] |> filter(.data[[r]] == taxon) |>
+  with(paste0("LFC ", formatC(lfc, format = "f", digits = 2), ", q = ", p4(q)))
+rob <- function(a, r, up = TRUE) {
+  x <- a[[r]] |> filter(significant, if (up) lfc > 0 else lfc < 0) |> arrange(desc(abs(lfc)))
+  if (nrow(x) == 0) return("none")
+  it <- if (r %in% c("Genus", "Species")) "*" else ""
+  knitr::combine_words(paste0(it, x[[r]], it, " (LFC ", formatC(x$lfc, format = "f", digits = 2), ")"))
+}
+nf <- function(a, r) a[[r]] |> filter(q < 0.05, !significant) |> pull(!!r)
+# columns shared by every ANCOM-BC2 summary table (taxa and functions)
+sum_cols <- function(x, first) {
+  hi <- grep("^Higher_in_", names(x), value = TRUE)
+  out <- tibble(!!first := x[[first]], Tested = fmt(x$Features_tested), `Pseudo-count fit` = x$Tested_pseudocount,
+                `Wilcoxon p < 0.05` = x$Wilcoxon_p05, `q < 0.05` = x$Significant_q05, Robust = x$Also_pass_sensitivity)
+  for (h in hi) out[[gsub("_", " ", h)]] <- x[[h]]
+  out
+}
+anc_sum <- function(a, tab_no, caption) a$Summary |>
+  sum_cols("Level") |>
+  ctab(sprintf("Table %s. %s", tab_no, caption))
+```
+
+## 10.1 gender: male vs female
+
+
+```r
+ps_ab <- ps |>
+  ps_filter(gender %in% c("female", "male")) |>                       # only the two groups compared
+  ps_mutate(gender = factor(gender, levels = c("female", "male")))      # female = reference
+res <- ANCOMBC::ancombc2(data = ps_ab, tax_level = "Genus", fix_formula = "gender",
+                         p_adj_method = "holm", prv_cut = 0.10, pseudo_sens = TRUE)
+res$res   # lfc_, p_, q_ and passed_ss_ columns: male vs female
+# script: run_ancombc2_safe(ps_genus, "Genus", contrasts$gender, bias_ps = ps)
+#         bias from all MAGs, pseudo-count refit, top-5 boxplots with plot_top_features()
+```
+
+```{r ancom-gender-summary}
+anc_g <- anc_read(ancom_xlsx[["gender"]])
+anc_sum(anc_g, "13", "ANCOM-BC2 summary per level, male vs female (results/gtdbtk/ancombc2_results_by_level_gender.xlsx, sheet 'Summary')")
+```
+
+All taxa were tested in the primary fit, with the bias estimated from
+`r anc_g$Run_status$Bias_features[1]` MAGs. Few taxa have even a nominal Wilcoxon p < 0.05
+(`r sum(anc_g$Summary$Wilcoxon_p05)` across all levels), and **no taxon
+reaches q < 0.05 at any level** (Table 13).
+
+#### Phylum
+
+```{r ancom-gender-phylum}
+anc_tbl(anc_g, "Phylum", "gender", tab_no = "14a")
+```
+
+```{r fig-top5-gender-phylum, fig.cap = "Figure 11a. Five lowest-p taxa at Phylum level (ANCOM-BC2), male vs female."}
+include_graphics(file.path(fig_dir, "10_ancombc2_top5_gender_phylum.png"))
+```
+
+**No phylum differs** (all q = 1). Bacillota_I has the same mean in both
+groups (`r at(anc_g, "Phylum", "Bacillota_I")`), and the lowest p, Bacteroidota
+(`r at(anc_g, "Phylum", "Bacteroidota")`), is far from significant.
+
+#### Class
+
+```{r ancom-gender-class}
+anc_tbl(anc_g, "Class", "gender", tab_no = "14b")
+```
+
+```{r fig-top5-gender-class, fig.cap = "Figure 11b. Five lowest-p taxa at Class level (ANCOM-BC2), male vs female."}
+include_graphics(file.path(fig_dir, "10_ancombc2_top5_gender_class.png"))
+```
+
+**No class reaches q < 0.05.** Only Bacilli has a nominal p below 0.05
+(`r at(anc_g, "Class", "Bacilli")`), and its Wilcoxon p is
+`r anc_g$Class |> filter(Class == "Bacilli") |> with(p4(wilcox_p_nominal))`.
+
+#### Order
+
+```{r ancom-gender-order}
+anc_tbl(anc_g, "Order", "gender", tab_no = "14c")
+```
+
+```{r fig-top5-gender-order, fig.cap = "Figure 11c. Five lowest-p taxa at Order level (ANCOM-BC2), male vs female."}
+include_graphics(file.path(fig_dir, "10_ancombc2_top5_gender_order.png"))
+```
+
+**No order reaches q < 0.05.** Lactobacillales, the order of Bacilli,
+has the lowest p (`r at(anc_g, "Order", "Lactobacillales")`); all other orders have
+q = 1.
+
+#### Family
+
+```{r ancom-gender-family}
+anc_tbl(anc_g, "Family", "gender", tab_no = "14d")
+```
+
+```{r fig-top5-gender-family, fig.cap = "Figure 11d. Five lowest-p taxa at Family level (ANCOM-BC2), male vs female."}
+include_graphics(file.path(fig_dir, "10_ancombc2_top5_gender_family.png"))
+```
+
+**No family reaches q < 0.05.** Muribaculaceae has the lowest p
+(`r at(anc_g, "Family", "Muribaculaceae")`) but is present in `r anc_g$Family |> filter(Family == "Muribaculaceae") |> with(paste0(n_present_female, " of 21 female and ", n_present_male, " of 9 male"))`
+samples, and its male mean rests mainly on one sample (S28). Oscillospiraceae is
+the only family with Wilcoxon p < 0.05
+(`r anc_g$Family |> filter(Family == "Oscillospiraceae") |> with(p4(wilcox_p_nominal))`), but its
+bias-corrected change is not significant (`r at(anc_g, "Family", "Oscillospiraceae")`).
+
+#### Genus
+
+```{r ancom-gender-genus}
+anc_tbl(anc_g, "Genus", "gender", tab_no = "14e")
+```
+
+```{r fig-top5-gender-genus, fig.cap = "Figure 11e. Five lowest-p taxa at Genus level (ANCOM-BC2), male vs female."}
+include_graphics(file.path(fig_dir, "10_ancombc2_top5_gender_genus.png"))
+```
+
+**No genus reaches q < 0.05.** The two lowest p-values belong to rare
+genera: *Cetobacterium_A* (`r at(anc_g, "Genus", "Cetobacterium_A")`; present in
+`r anc_g$Genus |> filter(Genus == "Cetobacterium_A") |> with(paste0(n_present_female, " of 21 female and ", n_present_male, " of 9 male"))` samples) and *Roseburia*
+(`r at(anc_g, "Genus", "Roseburia")`; `r anc_g$Genus |> filter(Genus == "Roseburia") |> with(paste0(n_present_female, " of 21 female and ", n_present_male, " of 9 male"))`). Their boxplots
+show that a few female samples carry them.
+
+#### Species
+
+```{r ancom-gender-species}
+anc_tbl(anc_g, "Species", "gender", tab_no = "14f")
+```
+
+```{r fig-top5-gender-species, fig.cap = "Figure 11f. Five lowest-p taxa at Species level (ANCOM-BC2), male vs female."}
+include_graphics(file.path(fig_dir, "10_ancombc2_top5_gender_species.png"))
+```
+
+**No species reaches q < 0.05.** *Cetobacterium_A* sp934085975
+(`r at(anc_g, "Species", "Cetobacterium_A sp934085975")`) repeats the genus result,
+and the other top species are below 0.1% in both groups.
+
+**gender overall.** No taxon differs between female and male at any level.
+The lowest p-values come from rare taxa carried by a few samples, and the
+abundant taxa (Bacillota_I, *Allobaculum*, *Collinsella*) have nearly
+equal means. This agrees with PERMANOVA (Section 9.1) and the PCoA
+(Figure 10a).
+
+## 10.2 fecal_color: Abnormally Dark vs Normal
+
+
+```r
+ps_ab <- ps |>
+  ps_filter(fecal_color %in% c("Normal", "Abnormally Dark")) |>                       # only the two groups compared
+  ps_mutate(fecal_color = factor(fecal_color, levels = c("Normal", "Abnormally Dark")))      # Normal = reference
+res <- ANCOMBC::ancombc2(data = ps_ab, tax_level = "Genus", fix_formula = "fecal_color",
+                         p_adj_method = "holm", prv_cut = 0.10, pseudo_sens = TRUE)
+res$res   # lfc_, p_, q_ and passed_ss_ columns: Abnormally Dark vs Normal
+# script: run_ancombc2_safe(ps_genus, "Genus", contrasts$fecal_color, bias_ps = ps)
+```
+
+```{r ancom-color-summary}
+anc_c <- anc_read(ancom_xlsx[["fecal_color"]])
+anc_sum(anc_c, "15", "ANCOM-BC2 summary per level, Abnormally Dark vs Normal (results/gtdbtk/ancombc2_results_by_level_fecal_color.xlsx, sheet 'Summary')")
+```
+
+All taxa at every level were tested in the primary fit (no pseudo-count
+fit was needed), with the bias estimated from
+`r anc_c$Run_status$Bias_features[1]` MAGs. Many taxa have Wilcoxon
+p < 0.05, but after Holm adjustment only a few reach q < 0.05 and only one
+is robust (Table 15).
+
+#### Phylum
+
+```{r ancom-color-phylum}
+anc_tbl(anc_c, "Phylum", "fecal_color", tab_no = "16a")
+```
+
+```{r fig-top5-color-phylum, fig.cap = "Figure 12a. Five lowest-p taxa at Phylum level (ANCOM-BC2), Abnormally Dark vs Normal."}
+include_graphics(file.path(fig_dir, "10_ancombc2_top5_fecal_color_phylum.png"))
+```
+
+* **Bacillota_I** is lower in Abnormally Dark (`r at(anc_c, "Phylum", "Bacillota_I")`)
+  and **Fusobacteriota** higher (`r at(anc_c, "Phylum", "Fusobacteriota")`). Both reach
+  q < 0.05 but fail the sensitivity analysis, so neither is robust.
+* **Bacillota** is higher in Abnormally Dark (`r at(anc_c, "Phylum", "Bacillota")`) but
+  does not reach q < 0.05.
+
+#### Class
+
+```{r ancom-color-class}
+anc_tbl(anc_c, "Class", "fecal_color", tab_no = "16b")
+```
+
+```{r fig-top5-color-class, fig.cap = "Figure 12b. Five lowest-p taxa at Class level (ANCOM-BC2), Abnormally Dark vs Normal."}
+include_graphics(file.path(fig_dir, "10_ancombc2_top5_fecal_color_class.png"))
+```
+
+**No class reaches q < 0.05.** The lowest p-values are Peptococcia
+(`r at(anc_c, "Class", "Peptococcia")`) and Bacilli_A (`r at(anc_c, "Class", "Bacilli_A")`),
+the classes of UMGS1590 and *Allobaculum*.
+
+#### Order
+
+```{r ancom-color-order}
+anc_tbl(anc_c, "Order", "fecal_color", tab_no = "16c")
+```
+
+```{r fig-top5-color-order, fig.cap = "Figure 12c. Five lowest-p taxa at Order level (ANCOM-BC2), Abnormally Dark vs Normal."}
+include_graphics(file.path(fig_dir, "10_ancombc2_top5_fecal_color_order.png"))
+```
+
+* **Oscillospirales is robustly higher in Abnormally Dark**
+  (`r at(anc_c, "Order", "Oscillospirales")`); it is the only robust result for
+  fecal_color.
+* Erysipelotrichales, the order of *Allobaculum*, falls from about 68% to
+  36% (Section 7.2) but is not significant (`r at(anc_c, "Order", "Erysipelotrichales")`).
+
+#### Family
+
+```{r ancom-color-family}
+anc_tbl(anc_c, "Family", "fecal_color", tab_no = "16d")
+```
+
+```{r fig-top5-color-family, fig.cap = "Figure 12d. Five lowest-p taxa at Family level (ANCOM-BC2), Abnormally Dark vs Normal."}
+include_graphics(file.path(fig_dir, "10_ancombc2_top5_fecal_color_family.png"))
+```
+
+**No family reaches q < 0.05.** Atopobiaceae is lower in Abnormally Dark
+(`r at(anc_c, "Family", "Atopobiaceae")`); Oscillospiraceae (`r at(anc_c, "Family", "Oscillospiraceae")`)
+and Ruminococcaceae (`r at(anc_c, "Family", "Ruminococcaceae")`), the two families
+of Oscillospirales, are higher.
+
+#### Genus
+
+```{r ancom-color-genus}
+anc_tbl(anc_c, "Genus", "fecal_color", tab_no = "16e")
+```
+
+```{r fig-top5-color-genus, fig.cap = "Figure 12e. Five lowest-p taxa at Genus level (ANCOM-BC2), Abnormally Dark vs Normal."}
+include_graphics(file.path(fig_dir, "10_ancombc2_top5_fecal_color_genus.png"))
+```
+
+**No genus reaches q < 0.05.** The lowest p-values are *Alitiscatomonas*
+(`r at(anc_c, "Genus", "Alitiscatomonas")`; fails the sensitivity analysis),
+*Dubosiella* (`r at(anc_c, "Genus", "Dubosiella")`) and *Negativibacillus*
+(`r at(anc_c, "Genus", "Negativibacillus")`; fails the sensitivity
+analysis). *Roseburia* is in the top 5 only
+because of one sample (0.14%); it is present in
+`r anc_c$Genus |> filter(Genus == "Roseburia") |> with(paste0(n_present_Normal, " of 16 Normal and ", n_present_Abnormally_Dark, " of 14 Abnormally Dark"))` samples.
+
+#### Species
+
+```{r ancom-color-species}
+anc_tbl(anc_c, "Species", "fecal_color", tab_no = "16f")
+```
+
+```{r fig-top5-color-species, fig.cap = "Figure 12f. Five lowest-p taxa at Species level (ANCOM-BC2), Abnormally Dark vs Normal."}
+include_graphics(file.path(fig_dir, "10_ancombc2_top5_fecal_color_species.png"))
+```
+
+**No species reaches q < 0.05.** *Alitiscatomonas aceti*
+(`r at(anc_c, "Species", "Alitiscatomonas aceti")`) and *Dubosiella newyorkensis*
+(`r at(anc_c, "Species", "Dubosiella newyorkensis")`) repeat the genus results, and
+*Allobaculum* sp910577085 is lower in Abnormally Dark
+(`r at(anc_c, "Species", "Allobaculum sp910577085")`).
+
+**fecal_color overall.** Apart from Oscillospirales, no taxon is robustly
+different, although Section 7.2 showed large differences in group means
+(for example, *Allobaculum* 40% vs 19%). Those differences come from 8 of
+the 14 Abnormally Dark samples, all of them Unpleasant (Section 7.3), while the other
+Abnormally Dark samples resemble Normal ones; this spread within the
+group, visible in every boxplot, weakens a two-group test. The direction
+of the near-significant results (Bacillota_I, Erysipelotrichales and
+*Dubosiella* lower; Peptococcia, Oscillospirales and several Lachnospiraceae
+and Ruminococcaceae genera higher in Abnormally Dark) agrees with Sections 7–9.
+
+## 10.3 fecal_odor
+
+fecal_odor has three levels, so ANCOM-BC2 is run for each pair of groups,
+using only the samples of those two groups.
+
+### 10.3.1 Moderately Unpleasant vs Normal
+
+
+```r
+ps_ab <- ps |>
+  ps_filter(fecal_odor %in% c("Normal", "Moderately Unpleasant")) |>                       # only the two groups compared
+  ps_mutate(fecal_odor = factor(fecal_odor, levels = c("Normal", "Moderately Unpleasant")))      # Normal = reference
+res <- ANCOMBC::ancombc2(data = ps_ab, tax_level = "Genus", fix_formula = "fecal_odor",
+                         p_adj_method = "holm", prv_cut = 0.10, pseudo_sens = TRUE)
+res$res   # lfc_, p_, q_ and passed_ss_ columns: Moderately Unpleasant vs Normal
+# script: run_ancombc2_safe(ps_genus, "Genus", contrasts$fecal_odor__Moderately_Unpleasant_vs_Normal, bias_ps = ps)
+```
+
+```{r ancom-odor-mn-summary}
+anc_mn <- anc_read(ancom_xlsx[["odor_MU_N"]])
+anc_sum(anc_mn, "17", "ANCOM-BC2 summary per level, Moderately Unpleasant vs Normal (results/gtdbtk/ancombc2_results_by_level_fecal_odor_Moderately_Unpleasant_vs_Normal.xlsx, sheet 'Summary')")
+```
+
+This comparison uses the `r anc_mn$Run_status$Samples[1]` Normal and
+Moderately Unpleasant samples; all taxa were tested in the primary fit,
+with the bias estimated from `r anc_mn$Run_status$Bias_features[1]` MAGs.
+Only `r sum(anc_mn$Summary$Significant_q05)` taxa reach q < 0.05, and **none
+is robust** (Table 17).
+
+##### Phylum
+
+```{r ancom-odor-mn-phylum}
+anc_tbl(anc_mn, "Phylum", "fecal_odor", tab_no = "18a", g = c("Normal", "Moderately Unpleasant"))
+```
+
+```{r fig-top5-odor-mn-phylum, fig.cap = "Figure 13a. Five lowest-p taxa at Phylum level (ANCOM-BC2), Moderately Unpleasant vs Normal."}
+include_graphics(file.path(fig_dir, "10_ancombc2_top5_fecal_odor_MU_vs_Normal_phylum.png"))
+```
+
+**No phylum differs** (q ≥ `r p4(min(anc_mn$Phylum$q))`). Bacillota_I has
+the same mean in both groups (`r anc_mn$Phylum |> filter(Phylum == "Bacillota_I") |> with(paste0(fmt(mean_rel_abund_Normal, 1), "% vs ", fmt(mean_rel_abund_Moderately_Unpleasant, 1), "%"))`; `r at(anc_mn, "Phylum", "Bacillota_I")`).
+
+##### Class
+
+```{r ancom-odor-mn-class}
+anc_tbl(anc_mn, "Class", "fecal_odor", tab_no = "18b", g = c("Normal", "Moderately Unpleasant"))
+```
+
+```{r fig-top5-odor-mn-class, fig.cap = "Figure 13b. Five lowest-p taxa at Class level (ANCOM-BC2), Moderately Unpleasant vs Normal."}
+include_graphics(file.path(fig_dir, "10_ancombc2_top5_fecal_odor_MU_vs_Normal_class.png"))
+```
+
+**No class reaches q < 0.05.** The lowest p, Actinomycetes
+(`r at(anc_mn, "Class", "Actinomycetes")`), is far from significant.
+
+##### Order
+
+```{r ancom-odor-mn-order}
+anc_tbl(anc_mn, "Order", "fecal_odor", tab_no = "18c", g = c("Normal", "Moderately Unpleasant"))
+```
+
+```{r fig-top5-odor-mn-order, fig.cap = "Figure 13c. Five lowest-p taxa at Order level (ANCOM-BC2), Moderately Unpleasant vs Normal."}
+include_graphics(file.path(fig_dir, "10_ancombc2_top5_fecal_odor_MU_vs_Normal_order.png"))
+```
+
+**No order reaches q < 0.05.** Oscillospirales has the lowest p and is
+higher in Moderately Unpleasant (`r at(anc_mn, "Order", "Oscillospirales")`), the same
+direction as for fecal_color (Section 10.2).
+
+##### Family
+
+```{r ancom-odor-mn-family}
+anc_tbl(anc_mn, "Family", "fecal_odor", tab_no = "18d", g = c("Normal", "Moderately Unpleasant"))
+```
+
+```{r fig-top5-odor-mn-family, fig.cap = "Figure 13d. Five lowest-p taxa at Family level (ANCOM-BC2), Moderately Unpleasant vs Normal."}
+include_graphics(file.path(fig_dir, "10_ancombc2_top5_fecal_odor_MU_vs_Normal_family.png"))
+```
+
+**No family reaches q < 0.05.** Oscillospiraceae
+(`r at(anc_mn, "Family", "Oscillospiraceae")`) and Ruminococcaceae
+(`r at(anc_mn, "Family", "Ruminococcaceae")`), the families of Oscillospirales, have the
+lowest p-values.
+
+##### Genus
+
+```{r ancom-odor-mn-genus}
+anc_tbl(anc_mn, "Genus", "fecal_odor", tab_no = "18e", g = c("Normal", "Moderately Unpleasant"))
+```
+
+```{r fig-top5-odor-mn-genus, fig.cap = "Figure 13e. Five lowest-p taxa at Genus level (ANCOM-BC2), Moderately Unpleasant vs Normal."}
+include_graphics(file.path(fig_dir, "10_ancombc2_top5_fecal_odor_MU_vs_Normal_genus.png"))
+```
+
+* ***Alitiscatomonas*** is higher in Moderately Unpleasant
+  (`r at(anc_mn, "Genus", "Alitiscatomonas")`) and is the only genus with q < 0.05, but
+  it fails the sensitivity analysis, so it is not robust. Its abundance is
+  very low in both groups (`r anc_mn$Genus |> filter(Genus == "Alitiscatomonas") |> with(paste0(fmt(mean_rel_abund_Normal, 3), "% vs ", fmt(mean_rel_abund_Moderately_Unpleasant, 3), "%"))`).
+* *Faecousia*, *Avimicrobium*, *Faecalibacterium* and *Streptococcus* follow,
+  all with q ≥ `r anc_mn$Genus |> filter(Genus == "Faecousia") |> with(p4(q))`.
+
+##### Species
+
+```{r ancom-odor-mn-species}
+anc_tbl(anc_mn, "Species", "fecal_odor", tab_no = "18f", g = c("Normal", "Moderately Unpleasant"))
+```
+
+```{r fig-top5-odor-mn-species, fig.cap = "Figure 13f. Five lowest-p taxa at Species level (ANCOM-BC2), Moderately Unpleasant vs Normal."}
+include_graphics(file.path(fig_dir, "10_ancombc2_top5_fecal_odor_MU_vs_Normal_species.png"))
+```
+
+***Alitiscatomonas aceti*** repeats the genus result
+(`r at(anc_mn, "Species", "Alitiscatomonas aceti")`; fails the sensitivity analysis).
+No other species reaches q < 0.05.
+
+**Moderately Unpleasant vs Normal overall.** No difference between the two
+groups is detected: no taxon is robustly different, the abundant taxa have nearly
+equal means, and the only q < 0.05 results (*Alitiscatomonas*, *A. aceti*)
+are rare and fail the sensitivity analysis. This matches the intermixed
+samples of these two groups in the PCoA (Figure 10c) and their near-identical
+group means (Section 7.3).
+
+### 10.3.2 Unpleasant vs Normal
+
+
+```r
+ps_ab <- ps |>
+  ps_filter(fecal_odor %in% c("Normal", "Unpleasant")) |>                       # only the two groups compared
+  ps_mutate(fecal_odor = factor(fecal_odor, levels = c("Normal", "Unpleasant")))      # Normal = reference
+res <- ANCOMBC::ancombc2(data = ps_ab, tax_level = "Genus", fix_formula = "fecal_odor",
+                         p_adj_method = "holm", prv_cut = 0.10, pseudo_sens = TRUE)
+res$res   # lfc_, p_, q_ and passed_ss_ columns: Unpleasant vs Normal
+# script: run_ancombc2_safe(ps_genus, "Genus", contrasts$fecal_odor__Unpleasant_vs_Normal, bias_ps = ps)
+```
+
+```{r ancom-odor-un-summary}
+anc_un <- anc_read(ancom_xlsx[["odor_U_N"]])
+anc_sum(anc_un, "19", "ANCOM-BC2 summary per level, Unpleasant vs Normal (results/gtdbtk/ancombc2_results_by_level_fecal_odor_Unpleasant_vs_Normal.xlsx, sheet 'Summary')")
+```
+
+This comparison uses the `r anc_un$Run_status$Samples[1]` Normal and
+Unpleasant samples, with the bias estimated from
+`r anc_un$Run_status$Bias_features[1]` MAGs; all taxa were tested in the
+primary fit. It gives by far the most differences of any comparison:
+`r sum(anc_un$Summary$Significant_q05)` taxa reach q < 0.05 across the six
+levels and `r sum(anc_un$Summary$Also_pass_sensitivity)` of them are robust,
+most of them higher in Unpleasant (Table 19).
+
+##### Phylum
+
+```{r ancom-odor-un-phylum}
+anc_tbl(anc_un, "Phylum", "fecal_odor", tab_no = "20a", g = c("Normal", "Unpleasant"))
+```
+
+```{r fig-top5-odor-un-phylum, fig.cap = "Figure 14a. Five lowest-p taxa at Phylum level (ANCOM-BC2), Unpleasant vs Normal."}
+include_graphics(file.path(fig_dir, "10_ancombc2_top5_fecal_odor_U_vs_Normal_phylum.png"))
+```
+
+* **Robust:** Bacillota is higher in Unpleasant (`r anc_un$Phylum |> filter(Phylum == "Bacillota") |> with(paste0(fmt(mean_rel_abund_Normal, 1), "% vs ", fmt(mean_rel_abund_Unpleasant, 1), "%"))`;
+  `r at(anc_un, "Phylum", "Bacillota")`).
+* **q < 0.05 but not robust:** Bacillota_I is lower (`r anc_un$Phylum |> filter(Phylum == "Bacillota_I") |> with(paste0(fmt(mean_rel_abund_Normal, 1), "% vs ", fmt(mean_rel_abund_Unpleasant, 1), "%"))`;
+  `r at(anc_un, "Phylum", "Bacillota_I")`) and Fusobacteriota higher
+  (`r at(anc_un, "Phylum", "Fusobacteriota")`); both fail the sensitivity analysis.
+
+##### Class
+
+```{r ancom-odor-un-class}
+anc_tbl(anc_un, "Class", "fecal_odor", tab_no = "20b", g = c("Normal", "Unpleasant"))
+```
+
+```{r fig-top5-odor-un-class, fig.cap = "Figure 14b. Five lowest-p taxa at Class level (ANCOM-BC2), Unpleasant vs Normal."}
+include_graphics(file.path(fig_dir, "10_ancombc2_top5_fecal_odor_U_vs_Normal_class.png"))
+```
+
+* **Robust, higher in Unpleasant:** `r rob(anc_un, "Class")`.
+* **q < 0.05 but not robust:** `r knitr::combine_words(nf(anc_un, "Class"))`; the
+  drop of Bacilli_A (`r anc_un$Class |> filter(Class == "Bacilli_A") |> with(paste0(fmt(mean_rel_abund_Normal, 1), "% vs ", fmt(mean_rel_abund_Unpleasant, 1), "%"))`) fails the sensitivity analysis.
+
+##### Order
+
+```{r ancom-odor-un-order}
+anc_tbl(anc_un, "Order", "fecal_odor", tab_no = "20c", g = c("Normal", "Unpleasant"))
+```
+
+```{r fig-top5-odor-un-order, fig.cap = "Figure 14c. Five lowest-p taxa at Order level (ANCOM-BC2), Unpleasant vs Normal."}
+include_graphics(file.path(fig_dir, "10_ancombc2_top5_fecal_odor_U_vs_Normal_order.png"))
+```
+
+* **Robust, higher in Unpleasant:** `r rob(anc_un, "Order")`.
+* **q < 0.05 but not robust:** `r knitr::combine_words(nf(anc_un, "Order"))`,
+  including the drop of Erysipelotrichales (`r anc_un$Order |> filter(Order == "Erysipelotrichales") |> with(paste0(fmt(mean_rel_abund_Normal, 1), "% vs ", fmt(mean_rel_abund_Unpleasant, 1), "%"))`).
+
+##### Family
+
+```{r ancom-odor-un-family}
+anc_tbl(anc_un, "Family", "fecal_odor", tab_no = "20d", g = c("Normal", "Unpleasant"))
+```
+
+```{r fig-top5-odor-un-family, fig.cap = "Figure 14d. Five lowest-p taxa at Family level (ANCOM-BC2), Unpleasant vs Normal."}
+include_graphics(file.path(fig_dir, "10_ancombc2_top5_fecal_odor_U_vs_Normal_family.png"))
+```
+
+* **Robust, higher in Unpleasant:** `r rob(anc_un, "Family")`.
+* **Robust, higher in Normal:** `r rob(anc_un, "Family", up = FALSE)`; these two
+  Coriobacteriales families nearly disappear in Unpleasant samples
+  (Atopobiaceae `r anc_un$Family |> filter(Family == "Atopobiaceae") |> with(paste0(fmt(mean_rel_abund_Normal, 1), "% vs ", fmt(mean_rel_abund_Unpleasant, 1), "%"))`).
+* **q < 0.05 but not robust:** `r knitr::combine_words(nf(anc_un, "Family"))`.
+
+##### Genus
+
+```{r ancom-odor-un-genus}
+anc_tbl(anc_un, "Genus", "fecal_odor", tab_no = "20e", g = c("Normal", "Unpleasant"))
+```
+
+```{r fig-top5-odor-un-genus, fig.cap = "Figure 14e. Five lowest-p taxa at Genus level (ANCOM-BC2), Unpleasant vs Normal."}
+include_graphics(file.path(fig_dir, "10_ancombc2_top5_fecal_odor_U_vs_Normal_genus.png"))
+```
+
+* **Robust, higher in Unpleasant:** `r rob(anc_un, "Genus")`.
+* **Robust, higher in Normal:** `r rob(anc_un, "Genus", up = FALSE)`;
+  `r anc_un$Genus |> filter(Genus == "Leptogranulimonas") |> with(paste0(fmt(mean_rel_abund_Normal, 1), "% vs ", fmt(mean_rel_abund_Unpleasant, 1), "%"))`.
+* **q < 0.05 but not robust:** `r knitr::combine_words(paste0("*", nf(anc_un, "Genus"), "*"))`.
+  These include the abundant *Allobaculum* (`r anc_un$Genus |> filter(Genus == "Allobaculum") |> with(paste0(fmt(mean_rel_abund_Normal, 1), "% vs ", fmt(mean_rel_abund_Unpleasant, 1), "%"))`),
+  whose decrease fails the sensitivity analysis.
+
+##### Species
+
+```{r ancom-odor-un-species}
+anc_tbl(anc_un, "Species", "fecal_odor", tab_no = "20f", g = c("Normal", "Unpleasant"))
+```
+
+```{r fig-top5-odor-un-species, fig.cap = "Figure 14f. Five lowest-p taxa at Species level (ANCOM-BC2), Unpleasant vs Normal."}
+include_graphics(file.path(fig_dir, "10_ancombc2_top5_fecal_odor_U_vs_Normal_species.png"))
+```
+
+* **Robust, higher in Unpleasant:** `r rob(anc_un, "Species")`.
+* **Robust, higher in Normal:** `r rob(anc_un, "Species", up = FALSE)`.
+* **q < 0.05 but not robust:** `r knitr::combine_words(paste0("*", nf(anc_un, "Species"), "*"))`.
+* *Allobaculum* species move in opposite directions: *A. stercoricanis*
+  rises (`r anc_un$Species |> filter(Species == "Allobaculum stercoricanis") |> with(paste0(fmt(mean_rel_abund_Normal, 1), "% vs ", fmt(mean_rel_abund_Unpleasant, 1), "%"))`), while *A.* sp910577085
+  and *A. mucilyticum* fall.
+
+**Unpleasant vs Normal overall.** This is the comparison that carries the
+differences seen in Sections 7–9. Unpleasant samples have robustly more
+Clostridia (Lachnospirales, Oscillospirales, Peptostreptococcales),
+Peptococcia (UMGS1590) and Coriobacteriia (*Collinsella*), and robustly
+less of two minor Coriobacteriales families (Atopobiaceae,
+Eggerthellaceae) and *Leptogranulimonas*. The fall of the dominant
+Bacillota_I / Erysipelotrichaceae / *Allobaculum* lineage is large and has
+q < 0.05 from Phylum to Species, but fails the sensitivity analysis from
+Phylum to Genus (only *Allobaculum* sp910577085 is robust), so it is
+reported as probable rather than robust. Because a large drop of
+one dominant group raises the relative share of all others, the many
+"higher in Unpleasant" results should be read together with that drop.
+
+### 10.3.3 Unpleasant vs Moderately Unpleasant
+
+
+```r
+ps_ab <- ps |>
+  ps_filter(fecal_odor %in% c("Moderately Unpleasant", "Unpleasant")) |>                       # only the two groups compared
+  ps_mutate(fecal_odor = factor(fecal_odor, levels = c("Moderately Unpleasant", "Unpleasant")))      # Moderately Unpleasant = reference
+res <- ANCOMBC::ancombc2(data = ps_ab, tax_level = "Genus", fix_formula = "fecal_odor",
+                         p_adj_method = "holm", prv_cut = 0.10, pseudo_sens = TRUE)
+res$res   # lfc_, p_, q_ and passed_ss_ columns: Unpleasant vs Moderately Unpleasant
+# script: run_ancombc2_safe(ps_genus, "Genus", contrasts$fecal_odor__Unpleasant_vs_Moderately_Unpleasant, bias_ps = ps)
+```
+
+```{r ancom-odor-um-summary}
+anc_um <- anc_read(ancom_xlsx[["odor_U_MU"]])
+anc_sum(anc_um, "21", "ANCOM-BC2 summary per level, Unpleasant vs Moderately Unpleasant (results/gtdbtk/ancombc2_results_by_level_fecal_odor_Unpleasant_vs_Moderately_Unpleasant.xlsx, sheet 'Summary')")
+```
+
+This comparison uses the `r anc_um$Run_status$Samples[1]` Moderately
+Unpleasant and Unpleasant samples, with the bias estimated from
+`r anc_um$Run_status$Bias_features[1]` MAGs; all taxa were tested in the
+primary fit. `r sum(anc_um$Summary$Significant_q05)` taxa reach q < 0.05
+and `r sum(anc_um$Summary$Also_pass_sensitivity)` are robust (Table 21).
+
+##### Phylum
+
+```{r ancom-odor-um-phylum}
+anc_tbl(anc_um, "Phylum", "fecal_odor", tab_no = "22a", g = c("Moderately Unpleasant", "Unpleasant"))
+```
+
+```{r fig-top5-odor-um-phylum, fig.cap = "Figure 15a. Five lowest-p taxa at Phylum level (ANCOM-BC2), Unpleasant vs Moderately Unpleasant."}
+include_graphics(file.path(fig_dir, "10_ancombc2_top5_fecal_odor_U_vs_MU_phylum.png"))
+```
+
+* **Robust, higher in Unpleasant:** `r rob(anc_um, "Phylum")`.
+* **Robust, higher in Moderately Unpleasant:** `r rob(anc_um, "Phylum", up = FALSE)`.
+* **q < 0.05 but not robust:** `r knitr::combine_words(paste0("", nf(anc_um, "Phylum"), ""))`.
+  Bacillota_I falls from `r anc_um$Phylum |> filter(Phylum == "Bacillota_I") |> with(paste0(fmt(mean_rel_abund_Moderately_Unpleasant, 1), "% to ", fmt(mean_rel_abund_Unpleasant, 1), "%"))` (`r at(anc_um, "Phylum", "Bacillota_I")`) but fails the
+  sensitivity analysis, as in Unpleasant vs Normal.
+
+##### Class
+
+```{r ancom-odor-um-class}
+anc_tbl(anc_um, "Class", "fecal_odor", tab_no = "22b", g = c("Moderately Unpleasant", "Unpleasant"))
+```
+
+```{r fig-top5-odor-um-class, fig.cap = "Figure 15b. Five lowest-p taxa at Class level (ANCOM-BC2), Unpleasant vs Moderately Unpleasant."}
+include_graphics(file.path(fig_dir, "10_ancombc2_top5_fecal_odor_U_vs_MU_class.png"))
+```
+
+* **Robust, higher in Unpleasant:** `r rob(anc_um, "Class")`.
+* **Robust, higher in Moderately Unpleasant:** `r rob(anc_um, "Class", up = FALSE)`.
+* **q < 0.05 but not robust:** `r knitr::combine_words(paste0("", nf(anc_um, "Class"), ""))`.
+
+##### Order
+
+```{r ancom-odor-um-order}
+anc_tbl(anc_um, "Order", "fecal_odor", tab_no = "22c", g = c("Moderately Unpleasant", "Unpleasant"))
+```
+
+```{r fig-top5-odor-um-order, fig.cap = "Figure 15c. Five lowest-p taxa at Order level (ANCOM-BC2), Unpleasant vs Moderately Unpleasant."}
+include_graphics(file.path(fig_dir, "10_ancombc2_top5_fecal_odor_U_vs_MU_order.png"))
+```
+
+* **Robust, higher in Unpleasant:** `r rob(anc_um, "Order")`.
+* **Robust, higher in Moderately Unpleasant:** `r rob(anc_um, "Order", up = FALSE)`.
+* **q < 0.05 but not robust:** `r knitr::combine_words(paste0("", nf(anc_um, "Order"), ""))`.
+
+##### Family
+
+```{r ancom-odor-um-family}
+anc_tbl(anc_um, "Family", "fecal_odor", tab_no = "22d", g = c("Moderately Unpleasant", "Unpleasant"))
+```
+
+```{r fig-top5-odor-um-family, fig.cap = "Figure 15d. Five lowest-p taxa at Family level (ANCOM-BC2), Unpleasant vs Moderately Unpleasant."}
+include_graphics(file.path(fig_dir, "10_ancombc2_top5_fecal_odor_U_vs_MU_family.png"))
+```
+
+* **Robust, higher in Unpleasant:** `r rob(anc_um, "Family")`.
+* **Robust, higher in Moderately Unpleasant:** `r rob(anc_um, "Family", up = FALSE)`.
+* **q < 0.05 but not robust:** `r knitr::combine_words(paste0("", nf(anc_um, "Family"), ""))`.
+  Bifidobacteriaceae (`r anc_um$Family |> filter(Family == "Bifidobacteriaceae") |> with(paste0(fmt(mean_rel_abund_Moderately_Unpleasant, 1), "% vs ", fmt(mean_rel_abund_Unpleasant, 1), "%"))`) is robustly lower in Unpleasant here,
+  whereas against Normal it reaches q < 0.05 but is not robust
+  (Section 10.3.2).
+
+##### Genus
+
+```{r ancom-odor-um-genus}
+anc_tbl(anc_um, "Genus", "fecal_odor", tab_no = "22e", g = c("Moderately Unpleasant", "Unpleasant"))
+```
+
+```{r fig-top5-odor-um-genus, fig.cap = "Figure 15e. Five lowest-p taxa at Genus level (ANCOM-BC2), Unpleasant vs Moderately Unpleasant."}
+include_graphics(file.path(fig_dir, "10_ancombc2_top5_fecal_odor_U_vs_MU_genus.png"))
+```
+
+* **Robust, higher in Unpleasant:** `r rob(anc_um, "Genus")`.
+* **Robust, higher in Moderately Unpleasant:** `r rob(anc_um, "Genus", up = FALSE)`.
+* **q < 0.05 but not robust:** `r knitr::combine_words(paste0("*", nf(anc_um, "Genus"), "*"))`.
+  Fewer genera are robust than against Normal (Section 10.3.2; 2 vs 9);
+  this comparison also has fewer samples (17 vs 22).
+
+##### Species
+
+```{r ancom-odor-um-species}
+anc_tbl(anc_um, "Species", "fecal_odor", tab_no = "22f", g = c("Moderately Unpleasant", "Unpleasant"))
+```
+
+```{r fig-top5-odor-um-species, fig.cap = "Figure 15f. Five lowest-p taxa at Species level (ANCOM-BC2), Unpleasant vs Moderately Unpleasant."}
+include_graphics(file.path(fig_dir, "10_ancombc2_top5_fecal_odor_U_vs_MU_species.png"))
+```
+
+* **Robust, higher in Unpleasant:** `r rob(anc_um, "Species")`.
+* **Robust, higher in Moderately Unpleasant:** `r rob(anc_um, "Species", up = FALSE)`.
+* **q < 0.05 but not robust:** `r knitr::combine_words(paste0("*", nf(anc_um, "Species"), "*"))`.
+  As against Normal, *Allobaculum stercoricanis* rises and *A.* sp910577085
+  falls in Unpleasant samples.
+
+**Unpleasant vs Moderately Unpleasant overall.** The pattern is the same
+as Unpleasant vs Normal: Bacillota, Clostridia (Lachnospirales,
+Peptostreptococcales), Peptococcia and Coriobacteriia (Coriobacteriaceae)
+are robustly higher in Unpleasant, and Atopobiaceae is robustly lower.
+Moderately Unpleasant samples therefore resemble Normal ones (Section
+10.3.1), and Unpleasant is the only fecal_odor group that differs.
+
+**fecal_odor overall.** Of the three comparisons, only those involving
+Unpleasant show robust differences. This agrees with the separate
+Unpleasant cluster in the PCoA (Figure 10c) and the large R² of fecal_odor
+in PERMANOVA (Section 9.3).
+
+---
+
+# 11. Summary of the taxonomic analysis
+
+```r
+# Table 23 collects the results already shown, per comparison and in condition order:
+#   alpha:      number of the six indices with Wilcoxon p < 0.05 (Section 6)
+#   PERMANOVA:  R² and p_adj for all MAGs (Section 9)
+#   ANCOM-BC2:  taxa with q < 0.05 and robust taxa, summed over Phylum to Species (Section 10)
+sum(anc_g$Summary$Significant_q05); sum(anc_g$Summary$Also_pass_sensitivity)   # e.g. gender
+```
+
+```{r summary-tab}
+rob_n <- function(a) sum(a$Summary$Also_pass_sensitivity)
+q_n   <- function(a) sum(a$Summary$Significant_q05)
+alpha_n <- function(g1, g2) atest |> filter(group1 == g1, group2 == g2, p < 0.05) |> nrow()
+perm_all <- function(x) x |> filter(Level == "All features")
+sm <- tibble(
+  Condition  = c("gender", "fecal_color", "fecal_odor", "fecal_odor", "fecal_odor", "fecal_odor"),
+  Comparison = c("male vs female", "Abnormally Dark vs Normal", "all three groups",
+                 "Moderately Unpleasant vs Normal", "Unpleasant vs Normal",
+                 "Unpleasant vs Moderately Unpleasant"),
+  `Alpha indices p < 0.05` = c(alpha_n("female", "male"), alpha_n("Normal", "Abnormally Dark"), NA,
+                               alpha_n("Normal", "Moderately Unpleasant"), alpha_n("Normal", "Unpleasant"),
+                               alpha_n("Moderately Unpleasant", "Unpleasant")),
+  `PERMANOVA R² all MAGs (%)` = c(fmt(100 * perm_all(pg)$R2, 1), fmt(100 * perm_all(pc9)$R2, 1),
+                                 fmt(100 * perm_all(po9)$R2, 1), NA, NA, NA),
+  `PERMANOVA p_adj` = c(p4(perm_all(pg)$p_adj), p4(perm_all(pc9)$p_adj), p4(perm_all(po9)$p_adj), NA, NA, NA),
+  `ANCOM-BC2 q < 0.05` = c(q_n(anc_g), q_n(anc_c), NA, q_n(anc_mn), q_n(anc_un), q_n(anc_um)),
+  `ANCOM-BC2 robust` = c(rob_n(anc_g), rob_n(anc_c), NA, rob_n(anc_mn), rob_n(anc_un), rob_n(anc_um)))
+options(knitr.kable.NA = "-")
+ctab(sm, caption = "Table 23. Overview of the taxonomic results by condition. Alpha: number of the six indices with nominal Wilcoxon p < 0.05; ANCOM-BC2: taxa summed over Phylum to Species.")
+```
+
+**Community.** The `r nrow(flt)` bacterial MAGs are dominated by
+Bacillota_I (Erysipelotrichaceae, mainly *Allobaculum*), Bacillota
+(Lachnospiraceae, Peptococcaceae) and Actinomycetota (*Collinsella*,
+*Bifidobacterium*). Library size does not differ between groups in any
+condition (Section 4), and all rarefaction curves saturate far below the
+rarefaction depth (Section 5). Table 23 summarises the tests for each
+condition, in the same order as the rest of the tutorial.
+
+1. **gender.** No analysis detects a difference: alpha diversity, PCoA,
+   PERMANOVA (R² `r fmt(100 * perm_all(pg)$R2, 1)`%, p_adj
+   `r p4(perm_all(pg)$p_adj)`) and ANCOM-BC2 (no taxon with q < 0.05) all
+   agree that female and male dogs carry similar communities.
+2. **fecal_color.** Composition differs (R² `r fmt(100 * perm_all(pc9)$R2, 1)`%),
+   but Abnormally Dark samples are also more variable (PERMDISP
+   significant), and only Oscillospirales is robustly different in
+   ANCOM-BC2. The difference comes from the
+   `r sum(design$fecal_odor == "Unpleasant")` Abnormally Dark samples that
+   are also Unpleasant (`r nrow(low_b1)` of them with less than 25%
+   Bacillota_I); the other Abnormally Dark samples resemble Normal ones.
+3. **fecal_odor.** The strongest effect (R² `r fmt(100 * perm_all(po9)$R2, 1)`%).
+   Unpleasant samples form a separate PCoA cluster and differ from both
+   Normal (`r rob_n(anc_un)` robust taxa) and Moderately Unpleasant
+   (`r rob_n(anc_um)`): more Clostridia (Lachnospiraceae,
+   Peptostreptococcaceae), Peptococcia (UMGS1590) and Coriobacteriaceae
+   (*Collinsella*), less Atopobiaceae, and a large but non-robust fall of
+   Bacillota_I / *Allobaculum*. They also have slightly fewer MAGs and less
+   low-abundance rarity. Moderately Unpleasant samples do not differ from
+   Normal (no robust taxon).
+
+**Points to keep in mind.** fecal_color and fecal_odor overlap (every
+Unpleasant sample is Abnormally Dark; Table 2), so their effects cannot
+be separated in these samples, and the main signal is best described as
+one group of nine Unpleasant, Abnormally Dark samples. Abundances are
+estimated reads of non-dereplicated MAGs (Section 3), alpha-diversity
+p-values are not adjusted, and the compositional shift after the fall of
+Bacillota_I raises the relative share of other taxa.
+
+---
+
+# 12. Functional analysis (COG, EC, Pfam, KEGG KO, KEGG Module, KEGG Pathway)
+
+The six functional groups (Section 1.5) are analysed with the same steps
+as the taxonomy, in the order COG, EC, Pfam, KEGG KO, KEGG Module and KEGG
+Pathway, and within each group in the order gender, fecal_color and
+fecal_odor.
+
+## 12.1 Functional alpha diversity
+
+```r
+ps_cog <- readRDS("phyloseq/ps_function.rds")$COG          # one phyloseq object per group
+alpha  <- ps_cog |>
+  ps_calc_richness(rank = "unique", index = "observed", varname = "Observed") |>
+  ps_calc_diversity(rank = "unique", index = "shannon", varname = "Shannon") |>
+  samdat_tbl()
+wilcox.test(Shannon ~ gender, data = alpha, exact = FALSE)
+```
+
+Functional alpha diversity uses the same six indices as Section 6, with
+functional terms (COGs, EC numbers, Pfam families, KOs, modules or
+pathways) in place of MAGs, computed on the filtered functional tables
+without rarefying. Here **richness** is the number of distinct functions
+detected, **Shannon, Simpson and Pielou** describe how evenly the gene
+abundance is spread over those functions, and **low-abundance rarity** is
+the share of abundance carried by functions below 0.2%.
+
+Each figure has one panel per index, one box per group and one point per
+sample, with the two-sided nominal Wilcoxon p (brackets for the three
+fecal_odor pairs).
+
+### 12.1.1 COG
+
+
+```r
+a <- alpha_values(ps_function$COG)                       # six indices, not rarefied
+alpha_tests(a, "gender"); alpha_tests(a, "fecal_color"); alpha_tests(a, "fecal_odor")   # Wilcoxon per pair
+```
+
+```{r fig-falpha-cog-gender, fig.cap = "Figure 16a. Functional alpha diversity of COG by gender."}
+include_graphics(file.path(fun_dir, "alpha_diversity_COG_gender.png"))
+```
+
+```{r fig-falpha-cog-fecal_color, fig.cap = "Figure 16b. Functional alpha diversity of COG by fecal_color."}
+include_graphics(file.path(fun_dir, "alpha_diversity_COG_fecal_color.png"))
+```
+
+```{r fig-falpha-cog-fecal_odor, fig.cap = "Figure 16c. Functional alpha diversity of COG by fecal_odor."}
+include_graphics(file.path(fun_dir, "alpha_diversity_COG_fecal_odor.png"))
+```
+
+* **gender (Figure 16a).** No index differs (p ≥ 0.68).
+* **fecal_color (Figure 16b).** Richness does not differ (Observed and
+  Chao1 p = 0.49), but Shannon (p = 0.015), Simpson (p = 0.017), Pielou
+  (p = 0.04) and low-abundance rarity (p = 0.0026) are all higher in
+  Abnormally Dark samples.
+* **fecal_odor (Figure 16c).** The same four indices are higher in
+  Unpleasant than in Normal (p = 0.00014–0.0033) and than in Moderately
+  Unpleasant (p = 0.0009–0.0081); Normal and Moderately Unpleasant do not
+  differ (p ≥ 0.64), and richness does not differ in any pair (p ≥ 0.74).
+
+### 12.1.2 EC
+
+
+```r
+a <- alpha_values(ps_function$EC)                       # six indices, not rarefied
+alpha_tests(a, "gender"); alpha_tests(a, "fecal_color"); alpha_tests(a, "fecal_odor")   # Wilcoxon per pair
+```
+
+```{r fig-falpha-ec-gender, fig.cap = "Figure 17a. Functional alpha diversity of EC by gender."}
+include_graphics(file.path(fun_dir, "alpha_diversity_EC_gender.png"))
+```
+
+```{r fig-falpha-ec-fecal_color, fig.cap = "Figure 17b. Functional alpha diversity of EC by fecal_color."}
+include_graphics(file.path(fun_dir, "alpha_diversity_EC_fecal_color.png"))
+```
+
+```{r fig-falpha-ec-fecal_odor, fig.cap = "Figure 17c. Functional alpha diversity of EC by fecal_odor."}
+include_graphics(file.path(fun_dir, "alpha_diversity_EC_fecal_odor.png"))
+```
+
+* **gender (Figure 17a).** No index differs (p ≥ 0.32).
+* **fecal_color (Figure 17b).** Only low-abundance rarity is higher in
+  Abnormally Dark samples (p = 0.023); richness, diversity and evenness do
+  not differ (p ≥ 0.16).
+* **fecal_odor (Figure 17c).** Low-abundance rarity is higher in Unpleasant
+  than in Normal (p = 0.0076) and Moderately Unpleasant (p = 0.0081);
+  Simpson is marginally higher in Unpleasant than in Normal (p = 0.053).
+  No other index or pair differs (p ≥ 0.11).
+
+### 12.1.3 Pfam
+
+
+```r
+a <- alpha_values(ps_function$Pfam)                       # six indices, not rarefied
+alpha_tests(a, "gender"); alpha_tests(a, "fecal_color"); alpha_tests(a, "fecal_odor")   # Wilcoxon per pair
+```
+
+```{r fig-falpha-pfam-gender, fig.cap = "Figure 18a. Functional alpha diversity of Pfam by gender."}
+include_graphics(file.path(fun_dir, "alpha_diversity_Pfam_gender.png"))
+```
+
+```{r fig-falpha-pfam-fecal_color, fig.cap = "Figure 18b. Functional alpha diversity of Pfam by fecal_color."}
+include_graphics(file.path(fun_dir, "alpha_diversity_Pfam_fecal_color.png"))
+```
+
+```{r fig-falpha-pfam-fecal_odor, fig.cap = "Figure 18c. Functional alpha diversity of Pfam by fecal_odor."}
+include_graphics(file.path(fun_dir, "alpha_diversity_Pfam_fecal_odor.png"))
+```
+
+* **gender (Figure 18a).** No index differs (p ≥ 0.42).
+* **fecal_color (Figure 18b).** Only low-abundance rarity is higher in
+  Abnormally Dark samples (p = 0.044).
+* **fecal_odor (Figure 18c).** Against Normal, Unpleasant samples have
+  higher low-abundance rarity (p = 0.019) and lower Simpson (p = 0.045);
+  the same differences against Moderately Unpleasant are marginal
+  (p = 0.061). Normal and Moderately Unpleasant do not differ (p ≥ 0.80).
+
+### 12.1.4 KEGG KO
+
+
+```r
+a <- alpha_values(ps_function$KEGG_KO)                       # six indices, not rarefied
+alpha_tests(a, "gender"); alpha_tests(a, "fecal_color"); alpha_tests(a, "fecal_odor")   # Wilcoxon per pair
+```
+
+```{r fig-falpha-kegg_ko-gender, fig.cap = "Figure 19a. Functional alpha diversity of KEGG KO by gender."}
+include_graphics(file.path(fun_dir, "alpha_diversity_KEGG_KO_gender.png"))
+```
+
+```{r fig-falpha-kegg_ko-fecal_color, fig.cap = "Figure 19b. Functional alpha diversity of KEGG KO by fecal_color."}
+include_graphics(file.path(fun_dir, "alpha_diversity_KEGG_KO_fecal_color.png"))
+```
+
+```{r fig-falpha-kegg_ko-fecal_odor, fig.cap = "Figure 19c. Functional alpha diversity of KEGG KO by fecal_odor."}
+include_graphics(file.path(fun_dir, "alpha_diversity_KEGG_KO_fecal_odor.png"))
+```
+
+* **gender (Figure 19a).** No index differs (p ≥ 0.65).
+* **fecal_color (Figure 19b).** No index differs (p ≥ 0.57).
+* **fecal_odor (Figure 19c).** No index differs in any pair (p ≥ 0.35).
+
+KEGG KO, the most detailed KEGG level, is the only group with no
+difference in any condition.
+
+### 12.1.5 KEGG Module
+
+
+```r
+a <- alpha_values(ps_function$KEGG_Module)                       # six indices, not rarefied
+alpha_tests(a, "gender"); alpha_tests(a, "fecal_color"); alpha_tests(a, "fecal_odor")   # Wilcoxon per pair
+```
+
+```{r fig-falpha-kegg_module-gender, fig.cap = "Figure 20a. Functional alpha diversity of KEGG Module by gender."}
+include_graphics(file.path(fun_dir, "alpha_diversity_KEGG_Module_gender.png"))
+```
+
+```{r fig-falpha-kegg_module-fecal_color, fig.cap = "Figure 20b. Functional alpha diversity of KEGG Module by fecal_color."}
+include_graphics(file.path(fun_dir, "alpha_diversity_KEGG_Module_fecal_color.png"))
+```
+
+```{r fig-falpha-kegg_module-fecal_odor, fig.cap = "Figure 20c. Functional alpha diversity of KEGG Module by fecal_odor."}
+include_graphics(file.path(fun_dir, "alpha_diversity_KEGG_Module_fecal_odor.png"))
+```
+
+* **gender (Figure 20a).** No index differs (p ≥ 0.26).
+* **fecal_color (Figure 20b).** Only Simpson is lower in Abnormally Dark
+  samples (p = 0.04).
+* **fecal_odor (Figure 20c).** Unpleasant samples have lower Shannon and
+  Simpson than Normal (p = 0.011 and 0.00011) and than Moderately
+  Unpleasant (p = 0.0024 and 0.00064), and lower Pielou than Moderately
+  Unpleasant (p = 0.039). Low-abundance rarity is higher in Moderately
+  Unpleasant than in both Normal (p = 0.019) and Unpleasant (p = 0.018).
+  Richness does not differ (p ≥ 0.47).
+
+### 12.1.6 KEGG Pathway
+
+
+```r
+a <- alpha_values(ps_function$KEGG_Pathway)                       # six indices, not rarefied
+alpha_tests(a, "gender"); alpha_tests(a, "fecal_color"); alpha_tests(a, "fecal_odor")   # Wilcoxon per pair
+```
+
+```{r fig-falpha-kegg_pathway-gender, fig.cap = "Figure 21a. Functional alpha diversity of KEGG Pathway by gender."}
+include_graphics(file.path(fun_dir, "alpha_diversity_KEGG_Pathway_gender.png"))
+```
+
+```{r fig-falpha-kegg_pathway-fecal_color, fig.cap = "Figure 21b. Functional alpha diversity of KEGG Pathway by fecal_color."}
+include_graphics(file.path(fun_dir, "alpha_diversity_KEGG_Pathway_fecal_color.png"))
+```
+
+```{r fig-falpha-kegg_pathway-fecal_odor, fig.cap = "Figure 21c. Functional alpha diversity of KEGG Pathway by fecal_odor."}
+include_graphics(file.path(fun_dir, "alpha_diversity_KEGG_Pathway_fecal_odor.png"))
+```
+
+* **gender (Figure 21a).** No index differs (p ≥ 0.26).
+* **fecal_color (Figure 21b).** Simpson (p = 0.0065) and low-abundance
+  rarity (p = 0.00095) are lower in Abnormally Dark samples.
+* **fecal_odor (Figure 21c).** Unpleasant samples have lower Simpson and
+  low-abundance rarity than Normal (p = 0.00024 and 0.00014) and than
+  Moderately Unpleasant (both p = 0.0009), and lower Shannon than Normal
+  (p = 0.028). Normal and Moderately Unpleasant do not differ (p ≥ 0.29).
+
+### 12.1.7 Summary of functional alpha diversity
+
+Gender has no effect on functional alpha diversity in any group. For
+fecal_color and fecal_odor, the number of functions never differs; the
+differences are in how abundance is spread over them, and they come from
+the Unpleasant (Abnormally Dark) samples. Against Normal and Moderately
+Unpleasant samples, these have higher low-abundance rarity for COG and EC
+(for Pfam only against Normal) and more even COG profiles, but less diverse KEGG Module and KEGG
+Pathway profiles. KEGG KO shows no difference. All p-values are nominal.
+
+## 12.2 Functional beta diversity
+
+```r
+ps_cog |> tax_transform("compositional", rank = "unique") |>
+  dist_calc("bray") |> ord_calc(method = "PCoA") |>
+  ord_plot(colour = "gender")
+```
+
+Functional beta diversity compares the functional profiles of the samples:
+Bray-Curtis dissimilarity on the relative abundance of all functional
+terms in a group, ordinated by PCoA, drawn as in Section 8 (one point per
+sample, dashed hull per group). Each group has three panels, coloured by
+gender (a), fecal_color (b) and fecal_odor (c).
+
+### 12.2.1 COG
+
+
+```r
+ps_function$COG |> tax_transform("compositional", rank = "unique") |> dist_calc("bray") |>
+  ord_calc(method = "PCoA") |> ord_plot(colour = "gender")   # also "fecal_color", "fecal_odor"
+```
+
+```{r fig-fbeta-cog-gender, fig.cap = "Figure 22a. Bray-Curtis PCoA of COG, coloured by gender."}
+include_graphics(file.path(fun_dir, "pcoa_bray_COG_gender.png"))
+```
+
+```{r fig-fbeta-cog-fecal_color, fig.cap = "Figure 22b. Bray-Curtis PCoA of COG, coloured by fecal_color."}
+include_graphics(file.path(fun_dir, "pcoa_bray_COG_fecal_color.png"))
+```
+
+```{r fig-fbeta-cog-fecal_odor, fig.cap = "Figure 22c. Bray-Curtis PCoA of COG, coloured by fecal_odor."}
+include_graphics(file.path(fun_dir, "pcoa_bray_COG_fecal_odor.png"))
+```
+
+MDS1 explains 61.5% and MDS2 8.6% of the variation.
+
+### 12.2.2 EC
+
+
+```r
+ps_function$EC |> tax_transform("compositional", rank = "unique") |> dist_calc("bray") |>
+  ord_calc(method = "PCoA") |> ord_plot(colour = "gender")   # also "fecal_color", "fecal_odor"
+```
+
+```{r fig-fbeta-ec-gender, fig.cap = "Figure 23a. Bray-Curtis PCoA of EC, coloured by gender."}
+include_graphics(file.path(fun_dir, "pcoa_bray_EC_gender.png"))
+```
+
+```{r fig-fbeta-ec-fecal_color, fig.cap = "Figure 23b. Bray-Curtis PCoA of EC, coloured by fecal_color."}
+include_graphics(file.path(fun_dir, "pcoa_bray_EC_fecal_color.png"))
+```
+
+```{r fig-fbeta-ec-fecal_odor, fig.cap = "Figure 23c. Bray-Curtis PCoA of EC, coloured by fecal_odor."}
+include_graphics(file.path(fun_dir, "pcoa_bray_EC_fecal_odor.png"))
+```
+
+MDS1 explains 60.3% and MDS2 10.1% of the variation.
+
+### 12.2.3 Pfam
+
+
+```r
+ps_function$Pfam |> tax_transform("compositional", rank = "unique") |> dist_calc("bray") |>
+  ord_calc(method = "PCoA") |> ord_plot(colour = "gender")   # also "fecal_color", "fecal_odor"
+```
+
+```{r fig-fbeta-pfam-gender, fig.cap = "Figure 24a. Bray-Curtis PCoA of Pfam, coloured by gender."}
+include_graphics(file.path(fun_dir, "pcoa_bray_Pfam_gender.png"))
+```
+
+```{r fig-fbeta-pfam-fecal_color, fig.cap = "Figure 24b. Bray-Curtis PCoA of Pfam, coloured by fecal_color."}
+include_graphics(file.path(fun_dir, "pcoa_bray_Pfam_fecal_color.png"))
+```
+
+```{r fig-fbeta-pfam-fecal_odor, fig.cap = "Figure 24c. Bray-Curtis PCoA of Pfam, coloured by fecal_odor."}
+include_graphics(file.path(fun_dir, "pcoa_bray_Pfam_fecal_odor.png"))
+```
+
+MDS1 explains 60.2% and MDS2 9.1% of the variation.
+
+### 12.2.4 KEGG KO
+
+
+```r
+ps_function$KEGG_KO |> tax_transform("compositional", rank = "unique") |> dist_calc("bray") |>
+  ord_calc(method = "PCoA") |> ord_plot(colour = "gender")   # also "fecal_color", "fecal_odor"
+```
+
+```{r fig-fbeta-kegg_ko-gender, fig.cap = "Figure 25a. Bray-Curtis PCoA of KEGG KO, coloured by gender."}
+include_graphics(file.path(fun_dir, "pcoa_bray_KEGG_KO_gender.png"))
+```
+
+```{r fig-fbeta-kegg_ko-fecal_color, fig.cap = "Figure 25b. Bray-Curtis PCoA of KEGG KO, coloured by fecal_color."}
+include_graphics(file.path(fun_dir, "pcoa_bray_KEGG_KO_fecal_color.png"))
+```
+
+```{r fig-fbeta-kegg_ko-fecal_odor, fig.cap = "Figure 25c. Bray-Curtis PCoA of KEGG KO, coloured by fecal_odor."}
+include_graphics(file.path(fun_dir, "pcoa_bray_KEGG_KO_fecal_odor.png"))
+```
+
+MDS1 explains 59.5% and MDS2 10.6% of the variation.
+
+### 12.2.5 KEGG Module
+
+
+```r
+ps_function$KEGG_Module |> tax_transform("compositional", rank = "unique") |> dist_calc("bray") |>
+  ord_calc(method = "PCoA") |> ord_plot(colour = "gender")   # also "fecal_color", "fecal_odor"
+```
+
+```{r fig-fbeta-kegg_module-gender, fig.cap = "Figure 26a. Bray-Curtis PCoA of KEGG Module, coloured by gender."}
+include_graphics(file.path(fun_dir, "pcoa_bray_KEGG_Module_gender.png"))
+```
+
+```{r fig-fbeta-kegg_module-fecal_color, fig.cap = "Figure 26b. Bray-Curtis PCoA of KEGG Module, coloured by fecal_color."}
+include_graphics(file.path(fun_dir, "pcoa_bray_KEGG_Module_fecal_color.png"))
+```
+
+```{r fig-fbeta-kegg_module-fecal_odor, fig.cap = "Figure 26c. Bray-Curtis PCoA of KEGG Module, coloured by fecal_odor."}
+include_graphics(file.path(fun_dir, "pcoa_bray_KEGG_Module_fecal_odor.png"))
+```
+
+MDS1 explains 60.1% and MDS2 13.2% of the variation.
+
+### 12.2.6 KEGG Pathway
+
+
+```r
+ps_function$KEGG_Pathway |> tax_transform("compositional", rank = "unique") |> dist_calc("bray") |>
+  ord_calc(method = "PCoA") |> ord_plot(colour = "gender")   # also "fecal_color", "fecal_odor"
+```
+
+```{r fig-fbeta-kegg_pathway-gender, fig.cap = "Figure 27a. Bray-Curtis PCoA of KEGG Pathway, coloured by gender."}
+include_graphics(file.path(fun_dir, "pcoa_bray_KEGG_Pathway_gender.png"))
+```
+
+```{r fig-fbeta-kegg_pathway-fecal_color, fig.cap = "Figure 27b. Bray-Curtis PCoA of KEGG Pathway, coloured by fecal_color."}
+include_graphics(file.path(fun_dir, "pcoa_bray_KEGG_Pathway_fecal_color.png"))
+```
+
+```{r fig-fbeta-kegg_pathway-fecal_odor, fig.cap = "Figure 27c. Bray-Curtis PCoA of KEGG Pathway, coloured by fecal_odor."}
+include_graphics(file.path(fun_dir, "pcoa_bray_KEGG_Pathway_fecal_odor.png"))
+```
+
+MDS1 explains 70.9% and MDS2 6.8% of the variation.
+
+### 12.2.7 Summary of functional beta diversity
+
+All six groups show the same structure as the MAG taxonomy (Section 8),
+with MDS1 explaining 59.5-70.9% of the variation:
+
+1. **gender.** Female and male samples are intermixed and their hulls
+   largely overlap in every group.
+2. **fecal_color.** Normal samples all fall in the right-hand cluster of
+   MDS1; Abnormally Dark samples spread across both clusters, with S2, S3,
+   S4, S6 and S7 among the Normal samples and the rest on the left.
+3. **fecal_odor.** The nine Unpleasant samples (S1, S8, S9, S11, S13, S14,
+   S15, S17, S29) form a separate cluster on the left of MDS1 in every
+   group, whose hull does not touch the others; Normal and Moderately
+   Unpleasant samples are intermixed.
+
+The functional profiles therefore follow the taxonomic shift: the
+Unpleasant samples differ in both community composition and functional
+potential, while gender has no visible effect.
+
+## 12.3 Functional PERMANOVA
+
+```r
+d <- ps_cog |> tax_transform("compositional", rank = "unique") |> dist_calc("bray")
+d |> dist_permanova(variables = "gender", n_perms = 9999, seed = 2026) |> perm_get()  # PERMANOVA
+d |> dist_bdisp(variables = "gender") |> bdisp_get()                                  # PERMDISP
+```
+
+PERMANOVA and PERMDISP are run as in Section 9 (Bray-Curtis, 9,999
+permutations), once per functional group on all its features; p-values
+are BH-adjusted across the six groups (p_adj). Each table has one row per
+group: number of features, R², PERMANOVA p and p_adj, and PERMDISP p and
+p_adj.
+
+```{r fperm}
+fperm <- read_csv(fun_perm_csv, show_col_types = FALSE) |>
+  mutate(Group = factor(Group, levels = c("COG", "EC", "Pfam", "KEGG_KO", "KEGG_Module", "KEGG_Pathway"))) |>
+  arrange(Group)
+fperm_kable <- function(cn, tab) fperm |> filter(Condition == cn) |>
+  transmute(Group = gsub("_", " ", Group), Features = fmt(Features), `R² (%)` = fmt(100 * R2, 2),
+            p = pq(p), p_adj = pq(p_adj), `PERMDISP p` = pq(PERMDISP_p), `PERMDISP p_adj` = pq(PERMDISP_p_adj)) |>
+  ctab(caption = sprintf("Table %s. Functional PERMANOVA and PERMDISP by %s (Bray-Curtis, 9,999 permutations; p_adj = BH across groups)", tab, cn))
+fr <- function(cn) fperm |> filter(Condition == cn) |>
+  with(paste0(fmt(100 * min(R2), 2), "% to ", fmt(100 * max(R2), 2), "%"))
+fpd <- function(cn, sig = TRUE) fperm |> filter(Condition == cn, (PERMDISP_p_adj < 0.05) == sig) |>
+  pull(Group) |> as.character() |> gsub(pattern = "_", replacement = " ") |> knitr::combine_words()
+```
+
+### 12.3.1 gender
+
+
+```r
+for (g in names(ps_function)) {                    # COG, EC, Pfam, KEGG KO, Module, Pathway
+  d <- ps_function[[g]] |> tax_transform("compositional", rank = "unique") |> dist_calc("bray")
+  print(d |> dist_permanova(variables = "gender", n_perms = 9999, seed = 2026) |> perm_get())
+  print(d |> dist_bdisp(variables = "gender", method = "centroid") |> bdisp_get())
+}
+# p_adj = p.adjust(p, "BH") across the six groups
+```
+
+```{r fperm-gender}
+fperm_kable("gender", "24a")
+```
+
+Gender explains only `r fr("gender")` of the functional variation, and
+neither PERMANOVA (p_adj ≥ `r p4(min(fperm$p_adj[fperm$Condition == "gender"]))`)
+nor PERMDISP is significant in any group.
+
+### 12.3.2 fecal_color
+
+
+```r
+for (g in names(ps_function)) {                    # COG, EC, Pfam, KEGG KO, Module, Pathway
+  d <- ps_function[[g]] |> tax_transform("compositional", rank = "unique") |> dist_calc("bray")
+  print(d |> dist_permanova(variables = "fecal_color", n_perms = 9999, seed = 2026) |> perm_get())
+  print(d |> dist_bdisp(variables = "fecal_color", method = "centroid") |> bdisp_get())
+}
+# p_adj = p.adjust(p, "BH") across the six groups
+```
+
+```{r fperm-color}
+fperm_kable("fecal_color", "24b")
+```
+
+fecal_color explains `r fr("fecal_color")` of the variation and is
+significant in every group (p_adj ≤ `r p4(max(fperm$p_adj[fperm$Condition == "fecal_color"]))`).
+PERMDISP is also significant for `r fpd("fecal_color")`, where Abnormally
+Dark samples are more spread out (Figures 22b–27b); only for
+`r fpd("fecal_color", FALSE)` is the result a pure shift of the centroid.
+
+### 12.3.3 fecal_odor
+
+
+```r
+for (g in names(ps_function)) {                    # COG, EC, Pfam, KEGG KO, Module, Pathway
+  d <- ps_function[[g]] |> tax_transform("compositional", rank = "unique") |> dist_calc("bray")
+  print(d |> dist_permanova(variables = "fecal_odor", n_perms = 9999, seed = 2026) |> perm_get())
+  print(d |> dist_bdisp(variables = "fecal_odor", method = "centroid") |> bdisp_get())
+}
+# p_adj = p.adjust(p, "BH") across the six groups
+```
+
+```{r fperm-odor}
+fperm_kable("fecal_odor", "24c")
+```
+
+fecal_odor has the largest effect, explaining `r fr("fecal_odor")` of the
+variation (p = 0.0001 in every group). PERMDISP is significant for
+`r fpd("fecal_odor")`, but not for `r fpd("fecal_odor", FALSE)`, where the
+large R² therefore reflects a genuine difference in functional
+composition, matching the separate Unpleasant cluster in Figures 22c–27c.
+
+### 12.3.4 Summary of functional PERMANOVA
+
+The functional results mirror the taxonomic ones (Section 9) at slightly
+lower R²: gender has no effect (about 2%), fecal_color a moderate effect
+(about 20%) that partly reflects the larger spread of Abnormally Dark
+samples, and fecal_odor the strongest effect (about 50%), carried by the
+Unpleasant samples. KEGG Pathway gives the highest R² for both faecal
+conditions.
+
+## 12.4 Functional differential abundance (ANCOM-BC2)
+
+```r
+res <- ANCOMBC::ancombc2(data = ps_cog, fix_formula = "gender",
+                         p_adj_method = "holm", prv_cut = 0.10, pseudo_sens = TRUE)
+```
+
+ANCOM-BC2 is run as in Section 10, once per functional group and
+comparison, with q-values Holm-adjusted over the features of each group.
+For KEGG KO, COG, EC and Pfam the sampling bias is estimated from the
+group's own features; for KEGG Module and KEGG Pathway it is estimated
+from the KEGG KO features. Features that the primary fit cannot estimate
+are refitted with a pseudo-count of 1 (marked *pseudo 1* in the figures).
+A feature is **robust** when q < 0.05 and it passes the sensitivity
+analysis. Each group has a table of the ten lowest-p features and a
+figure of the five lowest-p features, shown regardless of significance.
+
+```{r fanc-fun}
+fanc_tbl <- function(a, r, cn, n = 10, tab_no, g = conditions[[cn]][1:2]) {
+  d <- a[[r]] |> arrange(p) |> slice_head(n = n)
+  bind_cols(tibble(Feature = d$feature, Name = d$description), feat_cols(d, g)) |>
+    ctab(sprintf("Table %s. ANCOM-BC2, %s, %s vs %s (%s features; ten lowest p). Present = samples with reads, %s/%s.",
+                            tab_no, gsub("_", " ", r), g[2], g[1], fmt(nrow(a[[r]])), g[1], g[2]))
+}
+fanc_sum <- function(a, tab, caption) a$Summary |>
+  mutate(Group = factor(Group, levels = c("COG", "EC", "Pfam", "KEGG_KO", "KEGG_Module", "KEGG_Pathway"))) |>
+  arrange(Group) |>
+  mutate(Group = gsub("_", " ", Group)) |>
+  sum_cols("Group") |>
+  ctab(sprintf("Table %s. %s", tab, caption))
+fanc_txt <- function(a, r, g = NULL) {
+  x <- a[[r]]
+  rb <- x |> filter(significant) |> arrange(q)
+  nr <- x |> filter(q < 0.05, !significant) |> arrange(q)
+  lst <- function(d, k = 5) paste0(paste0(head(d$feature, k), " (", head(d$description, k), "; LFC ",
+                                          formatC(head(d$lfc, k), format = "f", digits = 2), ")", collapse = "; "),
+                                   if (nrow(d) > k) paste0("; and ", nrow(d) - k, " more") else "")
+  if (nrow(rb) > 0) {
+    up <- rb |> filter(lfc > 0); dn <- rb |> filter(lfc < 0)
+    return(paste0("**", nrow(rb), " robust features** (", nrow(dn), " higher in ", g[1], ", ", nrow(up),
+                  " higher in ", g[2], "; ", nrow(nr), " more with q < 0.05 fail the sensitivity analysis). ",
+                  if (nrow(dn) > 0) paste0("Lowest q, higher in ", g[1], ": ", lst(dn), ". ") else "",
+                  if (nrow(up) > 0) paste0("Lowest q, higher in ", g[2], ": ", lst(up), ".") else ""))
+  }
+  if (nrow(nr) == 0) return(paste0("**No robust feature.** No feature reaches q < 0.05; the lowest is ",
+                                   x$feature[which.min(x$q)], " (", x$description[which.min(x$q)], "; q = ", p4(min(x$q)), ")."))
+  paste0("**No robust feature.** ", nrow(nr), ifelse(nrow(nr) == 1, " feature reaches", " features reach"),
+         " q < 0.05 but fail", ifelse(nrow(nr) == 1, "s", ""), " the sensitivity analysis: ", lst(nr), ".")
+}
+```
+
+### 12.4.1 gender: male vs female
+
+
+```r
+ps_ab <- ps_function$COG |>
+  ps_filter(gender %in% c("female", "male")) |>                       # only the two groups compared
+  ps_mutate(gender = factor(gender, levels = c("female", "male")))      # female = reference
+res <- ANCOMBC::ancombc2(data = ps_ab, tax_level = NULL, fix_formula = "gender",
+                         p_adj_method = "holm", prv_cut = 0.10, pseudo_sens = TRUE)
+res$res   # lfc_, p_, q_ and passed_ss_ columns: male vs female
+# script: run_ancombc2_safe(ps_function$COG, "COG", contrasts$gender);
+#         KEGG Module / Pathway use bias_ps = ps_function$KEGG_KO
+```
+
+```{r fanc-gender-summary}
+fa_g <- anc_read(fun_ancom_xlsx[["gender"]])
+fanc_sum(fa_g, "25", "Functional ANCOM-BC2 summary, male vs female (results/function/ancombc2_results_by_group_gender.xlsx, sheet 'Summary')")
+```
+
+All features of every group were tested (`r sum(fa_g$Summary$Tested_pseudocount)`
+of them with the pseudo-count fit). Only
+`r sum(fa_g$Summary$Significant_q05)` of
+`r fmt(sum(fa_g$Summary$Features_tested))` features reach q < 0.05, all
+fail the sensitivity analysis, and **no feature is robust in any group**
+(Table 25).
+
+#### COG
+
+```{r fanc-gender-cog}
+fanc_tbl(fa_g, "COG", "gender", tab_no = "26a")
+```
+
+```{r fig-fanc-gender-cog, fig.cap = "Figure 28a. Five lowest-p COG features (ANCOM-BC2), male vs female."}
+include_graphics(file.path(fun_dir, "ancombc2_top5_COG_gender.png"))
+```
+
+`r fanc_txt(fa_g, "COG")`
+
+#### EC
+
+```{r fanc-gender-ec}
+fanc_tbl(fa_g, "EC", "gender", tab_no = "26b")
+```
+
+```{r fig-fanc-gender-ec, fig.cap = "Figure 28b. Five lowest-p EC features (ANCOM-BC2), male vs female."}
+include_graphics(file.path(fun_dir, "ancombc2_top5_EC_gender.png"))
+```
+
+`r fanc_txt(fa_g, "EC")`
+
+#### Pfam
+
+```{r fanc-gender-pfam}
+fanc_tbl(fa_g, "Pfam", "gender", tab_no = "26c")
+```
+
+```{r fig-fanc-gender-pfam, fig.cap = "Figure 28c. Five lowest-p Pfam features (ANCOM-BC2), male vs female."}
+include_graphics(file.path(fun_dir, "ancombc2_top5_Pfam_gender.png"))
+```
+
+`r fanc_txt(fa_g, "Pfam")`
+
+#### KEGG KO
+
+```{r fanc-gender-kegg_ko}
+fanc_tbl(fa_g, "KEGG_KO", "gender", tab_no = "26d")
+```
+
+```{r fig-fanc-gender-kegg_ko, fig.cap = "Figure 28d. Five lowest-p KEGG KO features (ANCOM-BC2), male vs female."}
+include_graphics(file.path(fun_dir, "ancombc2_top5_KEGG_KO_gender.png"))
+```
+
+`r fanc_txt(fa_g, "KEGG_KO")`
+
+#### KEGG Module
+
+```{r fanc-gender-kegg_module}
+fanc_tbl(fa_g, "KEGG_Module", "gender", tab_no = "26e")
+```
+
+```{r fig-fanc-gender-kegg_module, fig.cap = "Figure 28e. Five lowest-p KEGG Module features (ANCOM-BC2), male vs female."}
+include_graphics(file.path(fun_dir, "ancombc2_top5_KEGG_Module_gender.png"))
+```
+
+`r fanc_txt(fa_g, "KEGG_Module")`
+
+#### KEGG Pathway
+
+```{r fanc-gender-kegg_pathway}
+fanc_tbl(fa_g, "KEGG_Pathway", "gender", tab_no = "26f")
+```
+
+```{r fig-fanc-gender-kegg_pathway, fig.cap = "Figure 28f. Five lowest-p KEGG Pathway features (ANCOM-BC2), male vs female."}
+include_graphics(file.path(fun_dir, "ancombc2_top5_KEGG_Pathway_gender.png"))
+```
+
+`r fanc_txt(fa_g, "KEGG_Pathway")`
+
+**gender overall.** No function differs robustly between female and male
+dogs. The features with the lowest p-values are rare (mean relative abundance
+mostly 0.001% or less) and present in only a few samples of one group, as
+the boxplots show. For example, the lowest-p KEGG KO (K21721) and EC
+(1.5.1.51) are the same enzyme, found in
+`r fa_g$EC |> filter(feature == "1.5.1.51") |> with(paste0(n_present_female, " of 21 female but ", n_present_male, " of 9 male"))`
+samples. This agrees
+with the absence of gender effects in functional alpha diversity, beta
+diversity and PERMANOVA (Sections 12.1–12.3) and in the taxonomy
+(Section 10.1).
+
+### 12.4.2 fecal_color: Abnormally Dark vs Normal
+
+
+```r
+ps_ab <- ps_function$COG |>
+  ps_filter(fecal_color %in% c("Normal", "Abnormally Dark")) |>                       # only the two groups compared
+  ps_mutate(fecal_color = factor(fecal_color, levels = c("Normal", "Abnormally Dark")))      # Normal = reference
+res <- ANCOMBC::ancombc2(data = ps_ab, tax_level = NULL, fix_formula = "fecal_color",
+                         p_adj_method = "holm", prv_cut = 0.10, pseudo_sens = TRUE)
+res$res   # lfc_, p_, q_ and passed_ss_ columns: Abnormally Dark vs Normal
+# script: run_ancombc2_safe(ps_function$COG, "COG", contrasts$fecal_color);
+#         KEGG Module / Pathway use bias_ps = ps_function$KEGG_KO
+```
+
+```{r fanc-color-summary}
+fa_c <- anc_read(fun_ancom_xlsx[["fecal_color"]])
+fanc_sum(fa_c, "27", "Functional ANCOM-BC2 summary, Abnormally Dark vs Normal (results/function/ancombc2_results_by_group_fecal_color.xlsx, sheet 'Summary')")
+```
+
+All features were tested (`r sum(fa_c$Summary$Tested_pseudocount)` with
+the pseudo-count fit). Many more features than for gender have a nominal
+Wilcoxon p < 0.05 (`r fmt(sum(fa_c$Summary$Wilcoxon_p05))` vs
+`r sum(fa_g$Summary$Wilcoxon_p05)`), and `r sum(fa_c$Summary$Significant_q05)`
+reach q < 0.05, but all of them fail the sensitivity analysis, so **no
+feature is robust in any group** (Table 27).
+
+#### COG
+
+```{r fanc-color-cog}
+fanc_tbl(fa_c, "COG", "fecal_color", tab_no = "28a")
+```
+
+```{r fig-fanc-color-cog, fig.cap = "Figure 29a. Five lowest-p COG features (ANCOM-BC2), Abnormally Dark vs Normal."}
+include_graphics(file.path(fun_dir, "ancombc2_top5_COG_fecal_color.png"))
+```
+
+`r fanc_txt(fa_c, "COG")`
+
+#### EC
+
+```{r fanc-color-ec}
+fanc_tbl(fa_c, "EC", "fecal_color", tab_no = "28b")
+```
+
+```{r fig-fanc-color-ec, fig.cap = "Figure 29b. Five lowest-p EC features (ANCOM-BC2), Abnormally Dark vs Normal."}
+include_graphics(file.path(fun_dir, "ancombc2_top5_EC_fecal_color.png"))
+```
+
+`r fanc_txt(fa_c, "EC")`
+
+#### Pfam
+
+```{r fanc-color-pfam}
+fanc_tbl(fa_c, "Pfam", "fecal_color", tab_no = "28c")
+```
+
+```{r fig-fanc-color-pfam, fig.cap = "Figure 29c. Five lowest-p Pfam features (ANCOM-BC2), Abnormally Dark vs Normal."}
+include_graphics(file.path(fun_dir, "ancombc2_top5_Pfam_fecal_color.png"))
+```
+
+`r fanc_txt(fa_c, "Pfam")`
+
+#### KEGG KO
+
+```{r fanc-color-kegg_ko}
+fanc_tbl(fa_c, "KEGG_KO", "fecal_color", tab_no = "28d")
+```
+
+```{r fig-fanc-color-kegg_ko, fig.cap = "Figure 29d. Five lowest-p KEGG KO features (ANCOM-BC2), Abnormally Dark vs Normal."}
+include_graphics(file.path(fun_dir, "ancombc2_top5_KEGG_KO_fecal_color.png"))
+```
+
+`r fanc_txt(fa_c, "KEGG_KO")`
+
+#### KEGG Module
+
+```{r fanc-color-kegg_module}
+fanc_tbl(fa_c, "KEGG_Module", "fecal_color", tab_no = "28e")
+```
+
+```{r fig-fanc-color-kegg_module, fig.cap = "Figure 29e. Five lowest-p KEGG Module features (ANCOM-BC2), Abnormally Dark vs Normal."}
+include_graphics(file.path(fun_dir, "ancombc2_top5_KEGG_Module_fecal_color.png"))
+```
+
+`r fanc_txt(fa_c, "KEGG_Module")`
+
+#### KEGG Pathway
+
+```{r fanc-color-kegg_pathway}
+fanc_tbl(fa_c, "KEGG_Pathway", "fecal_color", tab_no = "28f")
+```
+
+```{r fig-fanc-color-kegg_pathway, fig.cap = "Figure 29f. Five lowest-p KEGG Pathway features (ANCOM-BC2), Abnormally Dark vs Normal."}
+include_graphics(file.path(fun_dir, "ancombc2_top5_KEGG_Pathway_fecal_color.png"))
+```
+
+`r fanc_txt(fa_c, "KEGG_Pathway")`
+
+**fecal_color overall.** No function is robustly different, but the
+q < 0.05 results are consistent across groups and mostly higher in
+Abnormally Dark samples: the same functions appear in several groups,
+such as anhydro-N-acetylmuramic acid kinase (COG2377, EC 2.7.1.170,
+K09001, Pfam AnmK), the RNA chaperone Hfq (COG1923, K03666, Pfam Hfq),
+subtilisin (EC 3.4.21.62, K01342) and 3-dehydro-L-gulonate-6-phosphate
+decarboxylase (EC 4.1.1.85, K03078). The boxplots show that these rises
+are carried by part of the Abnormally Dark group, as for the taxa
+(Section 10.2), which is why they fail the sensitivity analysis. KEGG
+Pathway has no feature with q < 0.05.
+
+### 12.4.3 fecal_odor
+
+As for the taxonomy (Section 10.3), each pair of fecal_odor groups is
+tested separately, using only the samples of those two groups.
+
+#### 12.4.3.1 Moderately Unpleasant vs Normal
+
+
+```r
+ps_ab <- ps_function$COG |>
+  ps_filter(fecal_odor %in% c("Normal", "Moderately Unpleasant")) |>                       # only the two groups compared
+  ps_mutate(fecal_odor = factor(fecal_odor, levels = c("Normal", "Moderately Unpleasant")))      # Normal = reference
+res <- ANCOMBC::ancombc2(data = ps_ab, tax_level = NULL, fix_formula = "fecal_odor",
+                         p_adj_method = "holm", prv_cut = 0.10, pseudo_sens = TRUE)
+res$res   # lfc_, p_, q_ and passed_ss_ columns: Moderately Unpleasant vs Normal
+# script: run_ancombc2_safe(ps_function$COG, "COG", contrasts$fecal_odor__Moderately_Unpleasant_vs_Normal);
+#         KEGG Module / Pathway use bias_ps = ps_function$KEGG_KO
+```
+
+```{r fanc-odor-mn-summary}
+fa_mn <- anc_read(fun_ancom_xlsx[["odor_MU_N"]])
+fanc_sum(fa_mn, "29", "Functional ANCOM-BC2 summary, Moderately Unpleasant vs Normal (results/function/ancombc2_results_by_group_fecal_odor_Moderately_Unpleasant_vs_Normal.xlsx, sheet 'Summary')")
+```
+
+This comparison uses the `r fa_mn$Run_status$Samples[1]` Normal and
+Moderately Unpleasant samples; features absent from both groups are
+dropped, so slightly fewer features are tested than for the other
+comparisons. Only `r sum(fa_mn$Summary$Significant_q05)` of
+`r fmt(sum(fa_mn$Summary$Features_tested))` features reach q < 0.05, all
+fail the sensitivity analysis, and **no feature is robust in any group**
+(Table 29).
+
+##### COG
+
+```{r fanc-odor-mn-cog}
+fanc_tbl(fa_mn, "COG", "fecal_odor", tab_no = "30a", g = c("Normal", "Moderately Unpleasant"))
+```
+
+```{r fig-fanc-odor-mn-cog, fig.cap = "Figure 30a. Five lowest-p COG features (ANCOM-BC2), Moderately Unpleasant vs Normal."}
+include_graphics(file.path(fun_dir, "ancombc2_top5_COG_fecal_odor_MU_vs_Normal.png"))
+```
+
+`r fanc_txt(fa_mn, "COG")`
+
+##### EC
+
+```{r fanc-odor-mn-ec}
+fanc_tbl(fa_mn, "EC", "fecal_odor", tab_no = "30b", g = c("Normal", "Moderately Unpleasant"))
+```
+
+```{r fig-fanc-odor-mn-ec, fig.cap = "Figure 30b. Five lowest-p EC features (ANCOM-BC2), Moderately Unpleasant vs Normal."}
+include_graphics(file.path(fun_dir, "ancombc2_top5_EC_fecal_odor_MU_vs_Normal.png"))
+```
+
+`r fanc_txt(fa_mn, "EC")`
+
+##### Pfam
+
+```{r fanc-odor-mn-pfam}
+fanc_tbl(fa_mn, "Pfam", "fecal_odor", tab_no = "30c", g = c("Normal", "Moderately Unpleasant"))
+```
+
+```{r fig-fanc-odor-mn-pfam, fig.cap = "Figure 30c. Five lowest-p Pfam features (ANCOM-BC2), Moderately Unpleasant vs Normal."}
+include_graphics(file.path(fun_dir, "ancombc2_top5_Pfam_fecal_odor_MU_vs_Normal.png"))
+```
+
+`r fanc_txt(fa_mn, "Pfam")`
+
+##### KEGG KO
+
+```{r fanc-odor-mn-kegg_ko}
+fanc_tbl(fa_mn, "KEGG_KO", "fecal_odor", tab_no = "30d", g = c("Normal", "Moderately Unpleasant"))
+```
+
+```{r fig-fanc-odor-mn-kegg_ko, fig.cap = "Figure 30d. Five lowest-p KEGG KO features (ANCOM-BC2), Moderately Unpleasant vs Normal."}
+include_graphics(file.path(fun_dir, "ancombc2_top5_KEGG_KO_fecal_odor_MU_vs_Normal.png"))
+```
+
+`r fanc_txt(fa_mn, "KEGG_KO")`
+
+##### KEGG Module
+
+```{r fanc-odor-mn-kegg_module}
+fanc_tbl(fa_mn, "KEGG_Module", "fecal_odor", tab_no = "30e", g = c("Normal", "Moderately Unpleasant"))
+```
+
+```{r fig-fanc-odor-mn-kegg_module, fig.cap = "Figure 30e. Five lowest-p KEGG Module features (ANCOM-BC2), Moderately Unpleasant vs Normal."}
+include_graphics(file.path(fun_dir, "ancombc2_top5_KEGG_Module_fecal_odor_MU_vs_Normal.png"))
+```
+
+`r fanc_txt(fa_mn, "KEGG_Module")`
+
+##### KEGG Pathway
+
+```{r fanc-odor-mn-kegg_pathway}
+fanc_tbl(fa_mn, "KEGG_Pathway", "fecal_odor", tab_no = "30f", g = c("Normal", "Moderately Unpleasant"))
+```
+
+```{r fig-fanc-odor-mn-kegg_pathway, fig.cap = "Figure 30f. Five lowest-p KEGG Pathway features (ANCOM-BC2), Moderately Unpleasant vs Normal."}
+include_graphics(file.path(fun_dir, "ancombc2_top5_KEGG_Pathway_fecal_odor_MU_vs_Normal.png"))
+```
+
+`r fanc_txt(fa_mn, "KEGG_Pathway")`
+
+**Moderately Unpleasant vs Normal overall.** No function differs
+robustly. The three q < 0.05 features (COG1062 and the xylene and toluene
+degradation modules M00537 and M00538, which share their KOs) are lower in
+Moderately Unpleasant samples but are carried by a few Normal samples, as
+the boxplots show. As for the taxa (Section 10.3.1), Moderately
+Unpleasant and Normal samples have the same functional profile.
+
+#### 12.4.3.2 Unpleasant vs Normal
+
+
+```r
+ps_ab <- ps_function$COG |>
+  ps_filter(fecal_odor %in% c("Normal", "Unpleasant")) |>                       # only the two groups compared
+  ps_mutate(fecal_odor = factor(fecal_odor, levels = c("Normal", "Unpleasant")))      # Normal = reference
+res <- ANCOMBC::ancombc2(data = ps_ab, tax_level = NULL, fix_formula = "fecal_odor",
+                         p_adj_method = "holm", prv_cut = 0.10, pseudo_sens = TRUE)
+res$res   # lfc_, p_, q_ and passed_ss_ columns: Unpleasant vs Normal
+# script: run_ancombc2_safe(ps_function$COG, "COG", contrasts$fecal_odor__Unpleasant_vs_Normal);
+#         KEGG Module / Pathway use bias_ps = ps_function$KEGG_KO
+```
+
+```{r fanc-odor-un-summary}
+fa_un <- anc_read(fun_ancom_xlsx[["odor_U_N"]])
+fanc_sum(fa_un, "31", "Functional ANCOM-BC2 summary, Unpleasant vs Normal (results/function/ancombc2_results_by_group_fecal_odor_Unpleasant_vs_Normal.xlsx, sheet 'Summary')")
+fu_rob <- sum(fa_un$Summary$Also_pass_sensitivity)
+fu_dn  <- sum(fa_un$Summary$Higher_in_Normal)
+```
+
+This comparison uses the `r fa_un$Run_status$Samples[1]` Normal and
+Unpleasant samples. It is the only functional comparison with robust
+results: `r fmt(sum(fa_un$Summary$Significant_q05))` features reach
+q < 0.05 and **`r fu_rob` are robust**, `r fu_dn` of them higher in Normal
+and `r fu_rob - fu_dn` higher in Unpleasant (Table 31). The pseudo-count
+fit (*pseudo 1* in the figures) is needed for features absent from all
+Unpleasant samples, such as COG1503, K21493 and Mo-co_dimer.
+
+##### COG
+
+```{r fanc-odor-un-cog}
+fanc_tbl(fa_un, "COG", "fecal_odor", tab_no = "32a", g = c("Normal", "Unpleasant"))
+```
+
+```{r fig-fanc-odor-un-cog, fig.cap = "Figure 31a. Five lowest-p COG features (ANCOM-BC2), Unpleasant vs Normal."}
+include_graphics(file.path(fun_dir, "ancombc2_top5_COG_fecal_odor_U_vs_Normal.png"))
+```
+
+`r fanc_txt(fa_un, "COG", c("Normal", "Unpleasant"))`
+
+##### EC
+
+```{r fanc-odor-un-ec}
+fanc_tbl(fa_un, "EC", "fecal_odor", tab_no = "32b", g = c("Normal", "Unpleasant"))
+```
+
+```{r fig-fanc-odor-un-ec, fig.cap = "Figure 31b. Five lowest-p EC features (ANCOM-BC2), Unpleasant vs Normal."}
+include_graphics(file.path(fun_dir, "ancombc2_top5_EC_fecal_odor_U_vs_Normal.png"))
+```
+
+`r fanc_txt(fa_un, "EC", c("Normal", "Unpleasant"))`
+
+##### Pfam
+
+```{r fanc-odor-un-pfam}
+fanc_tbl(fa_un, "Pfam", "fecal_odor", tab_no = "32c", g = c("Normal", "Unpleasant"))
+```
+
+```{r fig-fanc-odor-un-pfam, fig.cap = "Figure 31c. Five lowest-p Pfam features (ANCOM-BC2), Unpleasant vs Normal."}
+include_graphics(file.path(fun_dir, "ancombc2_top5_Pfam_fecal_odor_U_vs_Normal.png"))
+```
+
+`r fanc_txt(fa_un, "Pfam", c("Normal", "Unpleasant"))`
+
+##### KEGG KO
+
+```{r fanc-odor-un-kegg_ko}
+fanc_tbl(fa_un, "KEGG_KO", "fecal_odor", tab_no = "32d", g = c("Normal", "Unpleasant"))
+```
+
+```{r fig-fanc-odor-un-kegg_ko, fig.cap = "Figure 31d. Five lowest-p KEGG KO features (ANCOM-BC2), Unpleasant vs Normal."}
+include_graphics(file.path(fun_dir, "ancombc2_top5_KEGG_KO_fecal_odor_U_vs_Normal.png"))
+```
+
+`r fanc_txt(fa_un, "KEGG_KO", c("Normal", "Unpleasant"))`
+
+##### KEGG Module
+
+```{r fanc-odor-un-kegg_module}
+fanc_tbl(fa_un, "KEGG_Module", "fecal_odor", tab_no = "32e", g = c("Normal", "Unpleasant"))
+```
+
+```{r fig-fanc-odor-un-kegg_module, fig.cap = "Figure 31e. Five lowest-p KEGG Module features (ANCOM-BC2), Unpleasant vs Normal."}
+include_graphics(file.path(fun_dir, "ancombc2_top5_KEGG_Module_fecal_odor_U_vs_Normal.png"))
+```
+
+`r fanc_txt(fa_un, "KEGG_Module", c("Normal", "Unpleasant"))`
+
+##### KEGG Pathway
+
+```{r fanc-odor-un-kegg_pathway}
+fanc_tbl(fa_un, "KEGG_Pathway", "fecal_odor", tab_no = "32f", g = c("Normal", "Unpleasant"))
+```
+
+```{r fig-fanc-odor-un-kegg_pathway, fig.cap = "Figure 31f. Five lowest-p KEGG Pathway features (ANCOM-BC2), Unpleasant vs Normal."}
+include_graphics(file.path(fun_dir, "ancombc2_top5_KEGG_Pathway_fecal_odor_U_vs_Normal.png"))
+```
+
+`r fanc_txt(fa_un, "KEGG_Pathway", c("Normal", "Unpleasant"))`
+
+**Unpleasant vs Normal overall.** Many functions that are common in
+Normal samples are much lower or absent in Unpleasant samples, which is why most robust
+features (`r fu_dn` of `r fu_rob`) are higher in Normal. These include
+RNA repair (RNA 2',3'-cyclic phosphodiesterase: COG1514, EC 3.1.4.58,
+K01975, Pfam LigT_PEase), fructan degradation (fructan beta-fructosidase:
+EC 3.2.1.80, K03332), toxin-antitoxin and CRISPR genes (K21493, K18828,
+K19046), glutathione and cysteine biosynthesis (M00118, M00338) and
+aromatic-compound degradation pathways (styrene, chlorocyclohexane and
+toluene degradation). The few functions higher in Unpleasant include
+opine dehydrogenase (EC 1.5.1.28), molybdenum cofactor
+cytidylyltransferase (EC 2.7.7.76) and tryptophan-to-kynurenine
+metabolism (M00038). The same enzyme often appears in several groups,
+and the boxplots show little overlap between the two groups, so these results
+follow the taxonomic shift of the Unpleasant samples (Section 10.3.2).
+
+#### 12.4.3.3 Unpleasant vs Moderately Unpleasant
+
+
+```r
+ps_ab <- ps_function$COG |>
+  ps_filter(fecal_odor %in% c("Moderately Unpleasant", "Unpleasant")) |>                       # only the two groups compared
+  ps_mutate(fecal_odor = factor(fecal_odor, levels = c("Moderately Unpleasant", "Unpleasant")))      # Moderately Unpleasant = reference
+res <- ANCOMBC::ancombc2(data = ps_ab, tax_level = NULL, fix_formula = "fecal_odor",
+                         p_adj_method = "holm", prv_cut = 0.10, pseudo_sens = TRUE)
+res$res   # lfc_, p_, q_ and passed_ss_ columns: Unpleasant vs Moderately Unpleasant
+# script: run_ancombc2_safe(ps_function$COG, "COG", contrasts$fecal_odor__Unpleasant_vs_Moderately_Unpleasant);
+#         KEGG Module / Pathway use bias_ps = ps_function$KEGG_KO
+```
+
+```{r fanc-odor-um-summary}
+fa_um <- anc_read(fun_ancom_xlsx[["odor_U_MU"]])
+fanc_sum(fa_um, "33", "Functional ANCOM-BC2 summary, Unpleasant vs Moderately Unpleasant (results/function/ancombc2_results_by_group_fecal_odor_Unpleasant_vs_Moderately_Unpleasant.xlsx, sheet 'Summary')")
+fm_rob <- sum(fa_um$Summary$Also_pass_sensitivity)
+fm_dn  <- sum(fa_um$Summary$Higher_in_Moderately_Unpleasant)
+```
+
+This comparison uses the `r fa_um$Run_status$Samples[1]` Moderately
+Unpleasant and Unpleasant samples. `r fmt(sum(fa_um$Summary$Significant_q05))`
+features reach q < 0.05 and **`r fm_rob` are robust**, `r fm_dn` of them
+higher in Moderately Unpleasant and `r fm_rob - fm_dn` higher in
+Unpleasant (Table 33). Fewer features are robust than against Normal
+(`r fu_rob`), as this comparison has fewer samples (17 vs 22).
+
+##### COG
+
+```{r fanc-odor-um-cog}
+fanc_tbl(fa_um, "COG", "fecal_odor", tab_no = "34a", g = c("Moderately Unpleasant", "Unpleasant"))
+```
+
+```{r fig-fanc-odor-um-cog, fig.cap = "Figure 32a. Five lowest-p COG features (ANCOM-BC2), Unpleasant vs Moderately Unpleasant."}
+include_graphics(file.path(fun_dir, "ancombc2_top5_COG_fecal_odor_U_vs_MU.png"))
+```
+
+`r fanc_txt(fa_um, "COG", c("Moderately Unpleasant", "Unpleasant"))`
+
+##### EC
+
+```{r fanc-odor-um-ec}
+fanc_tbl(fa_um, "EC", "fecal_odor", tab_no = "34b", g = c("Moderately Unpleasant", "Unpleasant"))
+```
+
+```{r fig-fanc-odor-um-ec, fig.cap = "Figure 32b. Five lowest-p EC features (ANCOM-BC2), Unpleasant vs Moderately Unpleasant."}
+include_graphics(file.path(fun_dir, "ancombc2_top5_EC_fecal_odor_U_vs_MU.png"))
+```
+
+`r fanc_txt(fa_um, "EC", c("Moderately Unpleasant", "Unpleasant"))`
+
+##### Pfam
+
+```{r fanc-odor-um-pfam}
+fanc_tbl(fa_um, "Pfam", "fecal_odor", tab_no = "34c", g = c("Moderately Unpleasant", "Unpleasant"))
+```
+
+```{r fig-fanc-odor-um-pfam, fig.cap = "Figure 32c. Five lowest-p Pfam features (ANCOM-BC2), Unpleasant vs Moderately Unpleasant."}
+include_graphics(file.path(fun_dir, "ancombc2_top5_Pfam_fecal_odor_U_vs_MU.png"))
+```
+
+`r fanc_txt(fa_um, "Pfam", c("Moderately Unpleasant", "Unpleasant"))`
+
+##### KEGG KO
+
+```{r fanc-odor-um-kegg_ko}
+fanc_tbl(fa_um, "KEGG_KO", "fecal_odor", tab_no = "34d", g = c("Moderately Unpleasant", "Unpleasant"))
+```
+
+```{r fig-fanc-odor-um-kegg_ko, fig.cap = "Figure 32d. Five lowest-p KEGG KO features (ANCOM-BC2), Unpleasant vs Moderately Unpleasant."}
+include_graphics(file.path(fun_dir, "ancombc2_top5_KEGG_KO_fecal_odor_U_vs_MU.png"))
+```
+
+`r fanc_txt(fa_um, "KEGG_KO", c("Moderately Unpleasant", "Unpleasant"))`
+
+##### KEGG Module
+
+```{r fanc-odor-um-kegg_module}
+fanc_tbl(fa_um, "KEGG_Module", "fecal_odor", tab_no = "34e", g = c("Moderately Unpleasant", "Unpleasant"))
+```
+
+```{r fig-fanc-odor-um-kegg_module, fig.cap = "Figure 32e. Five lowest-p KEGG Module features (ANCOM-BC2), Unpleasant vs Moderately Unpleasant."}
+include_graphics(file.path(fun_dir, "ancombc2_top5_KEGG_Module_fecal_odor_U_vs_MU.png"))
+```
+
+`r fanc_txt(fa_um, "KEGG_Module", c("Moderately Unpleasant", "Unpleasant"))`
+
+##### KEGG Pathway
+
+```{r fanc-odor-um-kegg_pathway}
+fanc_tbl(fa_um, "KEGG_Pathway", "fecal_odor", tab_no = "34f", g = c("Moderately Unpleasant", "Unpleasant"))
+```
+
+```{r fig-fanc-odor-um-kegg_pathway, fig.cap = "Figure 32f. Five lowest-p KEGG Pathway features (ANCOM-BC2), Unpleasant vs Moderately Unpleasant."}
+include_graphics(file.path(fun_dir, "ancombc2_top5_KEGG_Pathway_fecal_odor_U_vs_MU.png"))
+```
+
+`r fanc_txt(fa_um, "KEGG_Pathway", c("Moderately Unpleasant", "Unpleasant"))`
+
+**Unpleasant vs Moderately Unpleasant overall.** The robust features are
+largely the same as against Normal (Section 12.4.3.2) and point in the
+same direction: RNA 2',3'-cyclic phosphodiesterase (COG1514, EC 3.1.4.58,
+K01975, Pfam LigT_PEase), the toxin YxiD (K21493), CRISPR Cascade
+subunits (K19046, K19124, K19123; Pfam CRISPR_Cse2), carboxylesterase
+(EC 3.1.1.1) and the chlorocyclohexane, styrene and toluene degradation
+pathways are all lower in Unpleasant samples. Moderately Unpleasant
+samples therefore share the functional profile of Normal samples.
+
+### 12.4.4 Summary of functional differential abundance
+
+1. **gender.** No function differs robustly in any group.
+2. **fecal_color.** No function differs robustly; the q < 0.05 results
+   (mostly higher in Abnormally Dark) come from the Unpleasant subset of
+   Abnormally Dark samples.
+3. **fecal_odor.** Moderately Unpleasant does not differ from Normal.
+   Unpleasant differs robustly from both Normal (`r fu_rob` features) and
+   Moderately Unpleasant (`r fm_rob`), mostly through functions that are
+   lower in Unpleasant samples, such as RNA repair, CRISPR, toxin and
+   aromatic-compound degradation genes.
+
+As in the taxonomic analysis, the functional differences belong to the
+nine Unpleasant (and Abnormally Dark) samples.
+
+## 12.5 Summary of the functional analysis
+
+The six functional groups (COG, EC, Pfam, KEGG KO, KEGG Module, KEGG
+Pathway) give a consistent picture that mirrors the taxonomy (Section 11):
+
+1. **gender.** No effect in any analysis: functional alpha diversity,
+   PCoA, PERMANOVA (R² 1.37–2.01%) and ANCOM-BC2 (no robust feature).
+2. **fecal_color.** Functional composition differs (R² 19.19–25.17%), but
+   Abnormally Dark samples are also more variable and no feature is
+   robust in ANCOM-BC2; the signal comes from the Abnormally Dark samples
+   that are also Unpleasant.
+3. **fecal_odor.** The strongest effect (R² 47.63–56.28%). Unpleasant
+   samples form a separate cluster in every group, have higher
+   low-abundance rarity for COG and EC (and Pfam, against Normal) and less
+   diverse KEGG Module and Pathway profiles, and differ robustly from Normal (`r fu_rob`
+   features) and Moderately Unpleasant (`r fm_rob`), mostly through
+   functions that are lower in Unpleasant samples, such as RNA repair,
+   CRISPR, toxin-antitoxin and aromatic-compound degradation genes.
+   Moderately Unpleasant samples do not differ from Normal.
+
+The functional potential therefore changes together with the community:
+the nine Unpleasant, Abnormally Dark samples differ in both which bacteria
+are present and which functions they carry. As for the taxonomy, these are
+estimated gene abundances from assembled contigs, the alpha-diversity
+p-values are nominal, and the overlap of fecal_color and fecal_odor
+(Table 2) means their effects cannot be separated.
+
+---
+
+# 13. Tools and libraries
+
+| Tool | Version / source | Role |
+|---|---|---|
+| nf-core/mag [1, 2] | 5.5.0 (Nextflow [7], nf-core [8]) | upstream processing |
+| fastp [9], Bowtie2 [10] | 1.0.1; 2.4.2 (nf-core/mag 5.5.0 containers) | read QC; PhiX and host removal |
+| MEGAHIT [11], Prodigal [12] | 1.2.9; 2.6.3 | assembly; gene prediction |
+| MetaBAT2 [13], MaxBin2 [14], MetaBinner [15] | 2.17; 2.2.7; 1.4.4 | binning |
+| Tiara [16], DAS Tool [3] | 1.0.3; 1.1.7 | domain classification; bin refinement |
+| CheckM2 [17] | 1.1.0 | MAG completeness and contamination |
+| GTDB-Tk [4, 18], GTDB [5] | 2.7.2; GTDB release 232 (R11-RS232, April 2026) | MAG taxonomy |
+| eggNOG-mapper [6, 22], eggNOG [21], DIAMOND [23] | eggNOG-mapper v2 (2.1.x; exact version printed by `1_prepare.sh`), eggNOG 5.0 | functional annotation |
+| COG [24], ENZYME [25], Pfam [26], KEGG [27] | downloaded by steps 4 and 6 | term filtering and names |
+| phyloseq [28] | Bioconductor | data handling |
+| microViz [29] | r-universe | aggregation, diversity, ordination, PERMANOVA, bar plots |
+| microbiome [30] | Bioconductor | evenness, rarity |
+| vegan [31] | CRAN | rarefaction, adonis2, betadisper |
+| ANCOMBC [32] | Bioconductor | ANCOM-BC2 |
+
+---
+
+# References
+
+1. Krakau S, Straub D, Gourlé H, Gabernet G, Nahnsen S. nf-core/mag: a best-practice pipeline for metagenome hybrid assembly and binning. NAR Genom Bioinform. 2022;4(1):lqac007. doi:10.1093/nargab/lqac007
+2. nf-core. nf-core/mag version 5.5.0 [software]. Zenodo; 2026 Aug 1. doi:10.5281/zenodo.21735750
+3. Sieber CMK, Probst AJ, Sharrar A, Thomas BC, Hess M, Tringe SG, et al. Recovery of genomes from metagenomes via a dereplication, aggregation and scoring strategy. Nat Microbiol. 2018;3(7):836–43. doi:10.1038/s41564-018-0171-1
+4. Chaumeil PA, Mussig AJ, Hugenholtz P, Parks DH. GTDB-Tk: a toolkit to classify genomes with the Genome Taxonomy Database. Bioinformatics. 2020;36(6):1925–7. doi:10.1093/bioinformatics/btz848
+5. Parks DH, Chuvochina M, Rinke C, Mussig AJ, Chaumeil PA, Hugenholtz P. GTDB: an ongoing census of bacterial and archaeal diversity through a phylogenetically consistent, rank normalized and complete genome-based taxonomy. Nucleic Acids Res. 2022;50(D1):D785–94. doi:10.1093/nar/gkab776
+6. Cantalapiedra CP, Hernández-Plaza A, Letunic I, Bork P, Huerta-Cepas J. eggNOG-mapper v2: functional annotation, orthology assignments, and domain prediction at the metagenomic scale. Mol Biol Evol. 2021;38(12):5825–9. doi:10.1093/molbev/msab293
+7. Di Tommaso P, Chatzou M, Floden EW, Barja PP, Palumbo E, Notredame C. Nextflow enables reproducible computational workflows. Nat Biotechnol. 2017;35(4):316–9.
+8. Ewels PA, Peltzer A, Fillinger S, Patel H, Alneberg J, Wilm A, et al. The nf-core framework for community-curated bioinformatics pipelines. Nat Biotechnol. 2020;38(3):276–8.
+9. Chen S, Zhou Y, Chen Y, Gu J. fastp: an ultra-fast all-in-one FASTQ preprocessor. Bioinformatics. 2018;34(17):i884–90. doi:10.1093/bioinformatics/bty560
+10. Langmead B, Salzberg SL. Fast gapped-read alignment with Bowtie 2. Nat Methods. 2012;9(4):357–9. doi:10.1038/nmeth.1923
+11. Li D, Luo R, Liu CM, Leung CM, Ting HF, Sadakane K, et al. MEGAHIT v1.0: a fast and scalable metagenome assembler driven by advanced methodologies and community practices. Methods. 2016;102:3–11. doi:10.1016/j.ymeth.2016.02.020
+12. Hyatt D, Chen GL, LoCascio PF, Land ML, Larimer FW, Hauser LJ. Prodigal: prokaryotic gene recognition and translation initiation site identification. BMC Bioinformatics. 2010;11:119. doi:10.1186/1471-2105-11-119
+13. Kang DD, Li F, Kirton E, Thomas A, Egan R, An H, et al. MetaBAT 2: an adaptive binning algorithm for robust and efficient genome reconstruction from metagenome assemblies. PeerJ. 2019;7:e7359. doi:10.7717/peerj.7359
+14. Wu YW, Simmons BA, Singer SW. MaxBin 2.0: an automated binning algorithm to recover genomes from multiple metagenomic datasets. Bioinformatics. 2016;32(4):605–7. doi:10.1093/bioinformatics/btv638
+15. Wang Z, Huang P, You R, Sun F, Zhu S. MetaBinner: a high-performance and stand-alone ensemble binning method to recover individual genomes from complex microbial communities. Genome Biol. 2023;24(1):1. doi:10.1186/s13059-022-02832-6
+16. Karlicki M, Antonowicz S, Karnkowska A. Tiara: deep learning-based classification system for eukaryotic sequences. Bioinformatics. 2022;38(2):344–50. doi:10.1093/bioinformatics/btab672
+17. Chklovski A, Parks DH, Woodcroft BJ, Tyson GW. CheckM2: a rapid, scalable and accurate tool for assessing microbial genome quality using machine learning. Nat Methods. 2023;20(8):1203–12. doi:10.1038/s41592-023-01940-w
+18. Chaumeil PA, Mussig AJ, Hugenholtz P, Parks DH. GTDB-Tk v2: memory friendly classification with the genome taxonomy database. Bioinformatics. 2022;38(23):5315–6. doi:10.1093/bioinformatics/btac672
+19. Institute for Cyber-Enabled Research (ICER), Michigan State University. Writing and submitting job scripts. MSU HPCC User Documentation [Internet]. Available from: https://docs.icer.msu.edu/Job_Script_and_Job_Submission/
+20. MSU Bioinformatics Core. Using nf-core pipelines on the MSU HPCC [Internet]. Available from: https://msubioinformaticscore.github.io/nf-core
+21. Huerta-Cepas J, Szklarczyk D, Heller D, Hernández-Plaza A, Forslund SK, Cook H, et al. eggNOG 5.0: a hierarchical, functionally and phylogenetically annotated orthology resource based on 5090 organisms and 2502 viruses. Nucleic Acids Res. 2019;47(D1):D309–14. doi:10.1093/nar/gky1085
+22. eggNOG-mapper wiki: eggNOG-mapper v2.1.5 to v2.1.13 [Internet]. GitHub. Available from: https://github.com/eggnogdb/eggnog-mapper/wiki/eggNOG-mapper-v2.1.5-to-v2.1.13
+23. Buchfink B, Reuter K, Drost HG. Sensitive protein alignments at tree-of-life scale using DIAMOND. Nat Methods. 2021;18(4):366–8. doi:10.1038/s41592-021-01101-x
+24. Galperin MY, Vera Alvarez R, Karamycheva S, Makarova KS, Wolf YI, Landsman D, Koonin EV. COG database update 2024. Nucleic Acids Res. 2025;53(D1):D356–63. doi:10.1093/nar/gkae983
+25. Bairoch A. The ENZYME database in 2000. Nucleic Acids Res. 2000;28(1):304–5. doi:10.1093/nar/28.1.304
+26. Paysan-Lafosse T, Andreeva A, Blum M, Chuguransky SR, Grego T, Lazaro Pinto B, et al. The Pfam protein families database: embracing AI/ML. Nucleic Acids Res. 2025;53(D1):D523–34. doi:10.1093/nar/gkae997
+27. Kanehisa M, Goto S. KEGG: Kyoto Encyclopedia of Genes and Genomes. Nucleic Acids Res. 2000;28(1):27–30.
+28. McMurdie PJ, Holmes S. phyloseq: an R package for reproducible interactive analysis and graphics of microbiome census data. PLoS One. 2013;8(4):e61217.
+29. Barnett DJM, Arts ICW, Penders J. microViz: an R package for microbiome data visualization and statistics. J Open Source Softw. 2021;6(63):3201.
+30. Lahti L, Shetty S, et al. Tools for microbiome analysis in R. microbiome R package. Bioconductor; 2017. Available from: https://microbiome.github.io/microbiome
+31. Oksanen J, Simpson GL, Blanchet FG, Kindt R, Legendre P, Minchin PR, et al. vegan: Community Ecology Package. R package. Available from: https://CRAN.R-project.org/package=vegan
+32. Lin H, Peddada SD. Multigroup analysis of compositions of microbiomes with covariate adjustments and repeated measures. Nat Methods. 2024;21(1):83–91.
+33. Anderson MJ. A new method for non-parametric multivariate analysis of variance. Austral Ecol. 2001;26(1):32–46. doi:10.1111/j.1442-9993.2001.01070.pp.x
+34. Anderson MJ. Distance-based tests for homogeneity of multivariate dispersions. Biometrics. 2006;62(1):245–53. doi:10.1111/j.1541-0420.2005.00440.x
+35. Benjamini Y, Hochberg Y. Controlling the false discovery rate: a practical and powerful approach to multiple testing. J R Stat Soc Series B. 1995;57(1):289–300. doi:10.1111/j.2517-6161.1995.tb02031.x
+36. Holm S. A simple sequentially rejective multiple test procedure. Scand J Stat. 1979;6(2):65–70.

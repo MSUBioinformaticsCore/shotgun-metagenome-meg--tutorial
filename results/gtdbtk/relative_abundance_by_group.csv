@@ -1,0 +1,953 @@
+Level,Condition,Group,Taxon,mean_rel_abund,n_samples_present,n_samples
+Phylum,fecal_color,Normal,Bacillota_I,68.28164574716932,16,16
+Phylum,fecal_color,Normal,Bacillota,18.783254856960564,16,16
+Phylum,fecal_color,Normal,Actinomycetota,12.761441482735659,16,16
+Phylum,fecal_color,Normal,Fusobacteriota,0.06693764685658196,13,16
+Phylum,fecal_color,Normal,Bacteroidota,0.10672026627787934,14,16
+Phylum,fecal_color,Abnormally Dark,Bacillota_I,36.18333561650311,14,14
+Phylum,fecal_color,Abnormally Dark,Bacillota,44.80773313822008,14,14
+Phylum,fecal_color,Abnormally Dark,Actinomycetota,18.57262873417024,14,14
+Phylum,fecal_color,Abnormally Dark,Fusobacteriota,0.3567129455652729,13,14
+Phylum,fecal_color,Abnormally Dark,Bacteroidota,0.07958956554130113,13,14
+Phylum,fecal_odor,Normal,Bacillota_I,69.10350264467439,13,13
+Phylum,fecal_odor,Normal,Bacillota,19.017226790479402,13,13
+Phylum,fecal_odor,Normal,Actinomycetota,11.691573204611236,13,13
+Phylum,fecal_odor,Normal,Fusobacteriota,0.07635488432884674,11,13
+Phylum,fecal_odor,Normal,Bacteroidota,0.11134247590611267,12,13
+Phylum,fecal_odor,Moderately Unpleasant,Bacillota_I,68.94314856021093,8,8
+Phylum,fecal_odor,Moderately Unpleasant,Bacillota,17.02826699410421,8,8
+Phylum,fecal_odor,Moderately Unpleasant,Actinomycetota,13.833058492212105,8,8
+Phylum,fecal_odor,Moderately Unpleasant,Fusobacteriota,0.098436824436381,7,8
+Phylum,fecal_odor,Moderately Unpleasant,Bacteroidota,0.09708912903637712,7,8
+Phylum,fecal_odor,Unpleasant,Bacillota_I,16.575811969255323,9,9
+Phylum,fecal_odor,Unpleasant,Bacillota,60.487806379709355,9,9
+Phylum,fecal_odor,Unpleasant,Actinomycetota,22.393882933834558,9,9
+Phylum,fecal_odor,Unpleasant,Fusobacteriota,0.47609727731700846,8,9
+Phylum,fecal_odor,Unpleasant,Bacteroidota,0.06640143988375594,8,9
+Phylum,gender,female,Bacillota_I,53.11243488320378,21,21
+Phylum,gender,female,Bacillota,31.41391181198881,21,21
+Phylum,gender,female,Actinomycetota,15.142121375229484,21,21
+Phylum,gender,female,Fusobacteriota,0.24960290570760613,18,21
+Phylum,gender,female,Bacteroidota,0.08192902387031868,21,21
+Phylum,gender,male,Bacillota_I,53.745766448719245,9,9
+Phylum,gender,male,Bacillota,29.794243732742785,9,9
+Phylum,gender,male,Actinomycetota,16.246146346926086,9,9
+Phylum,gender,male,Fusobacteriota,0.09148028530660038,8,9
+Phylum,gender,male,Bacteroidota,0.12236318630528807,6,9
+Class,fecal_color,Normal,Bacilli_A,68.28164574716932,16,16
+Class,fecal_color,Normal,Clostridia,11.751183435236397,16,16
+Class,fecal_color,Normal,Coriobacteriia,6.21886490303244,16,16
+Class,fecal_color,Normal,Peptococcia,3.21089297339254,16,16
+Class,fecal_color,Normal,Actinomycetes,6.542576579703219,16,16
+Class,fecal_color,Normal,Bacilli,3.821178448331623,16,16
+Class,fecal_color,Normal,Fusobacteriia,0.06693764685658196,13,16
+Class,fecal_color,Normal,Bacteroidia,0.10672026627787934,14,16
+Class,fecal_color,Abnormally Dark,Bacilli_A,36.18333561650311,14,14
+Class,fecal_color,Abnormally Dark,Clostridia,31.138378623644925,14,14
+Class,fecal_color,Abnormally Dark,Coriobacteriia,15.021721163759,14,14
+Class,fecal_color,Abnormally Dark,Peptococcia,11.645900741160913,14,14
+Class,fecal_color,Abnormally Dark,Actinomycetes,3.5509075704112414,14,14
+Class,fecal_color,Abnormally Dark,Bacilli,2.0234537734142424,14,14
+Class,fecal_color,Abnormally Dark,Fusobacteriia,0.3567129455652729,13,14
+Class,fecal_color,Abnormally Dark,Bacteroidia,0.07958956554130113,13,14
+Class,fecal_odor,Normal,Bacilli_A,69.10350264467439,13,13
+Class,fecal_odor,Normal,Clostridia,12.058035766207539,13,13
+Class,fecal_odor,Normal,Coriobacteriia,6.1849138522655105,13,13
+Class,fecal_odor,Normal,Peptococcia,2.9617469303747623,13,13
+Class,fecal_odor,Normal,Actinomycetes,5.506659352345725,13,13
+Class,fecal_odor,Normal,Bacilli,3.9974440938971005,13,13
+Class,fecal_odor,Normal,Fusobacteriia,0.07635488432884674,11,13
+Class,fecal_odor,Normal,Bacteroidia,0.11134247590611267,12,13
+Class,fecal_odor,Moderately Unpleasant,Bacilli_A,68.94314856021093,8,8
+Class,fecal_odor,Moderately Unpleasant,Clostridia,9.849937523814777,8,8
+Class,fecal_odor,Moderately Unpleasant,Coriobacteriia,5.36430969850444,8,8
+Class,fecal_odor,Moderately Unpleasant,Peptococcia,3.6708851241273903,8,8
+Class,fecal_odor,Moderately Unpleasant,Actinomycetes,8.468748793707665,8,8
+Class,fecal_odor,Moderately Unpleasant,Bacilli,3.5074443461620404,8,8
+Class,fecal_odor,Moderately Unpleasant,Fusobacteriia,0.098436824436381,7,8
+Class,fecal_odor,Moderately Unpleasant,Bacteroidia,0.09708912903637712,7,8
+Class,fecal_odor,Unpleasant,Bacilli_A,16.575811969255323,9,9
+Class,fecal_odor,Unpleasant,Clostridia,43.15580783817723,9,9
+Class,fecal_odor,Unpleasant,Coriobacteriia,20.720841897073097,9,9
+Class,fecal_odor,Unpleasant,Peptococcia,16.28301187362693,9,9
+Class,fecal_odor,Unpleasant,Actinomycetes,1.673041036761461,9,9
+Class,fecal_odor,Unpleasant,Bacilli,1.0489866679051914,9,9
+Class,fecal_odor,Unpleasant,Fusobacteriia,0.47609727731700846,8,9
+Class,fecal_odor,Unpleasant,Bacteroidia,0.06640143988375594,8,9
+Class,gender,female,Bacilli_A,53.11243488320378,21,21
+Class,gender,female,Clostridia,22.138653991427372,21,21
+Class,gender,female,Coriobacteriia,10.683415530772994,21,21
+Class,gender,female,Peptococcia,6.777523293046101,21,21
+Class,gender,female,Actinomycetes,4.458705844456489,21,21
+Class,gender,female,Bacilli,2.4977345275153358,21,21
+Class,gender,female,Fusobacteriia,0.24960290570760613,18,21
+Class,gender,female,Bacteroidia,0.08192902387031868,21,21
+Class,gender,male,Bacilli_A,53.745766448719245,9,9
+Class,gender,male,Clostridia,17.671611319426273,9,9
+Class,gender,male,Coriobacteriia,9.49491206610135,9,9
+Class,gender,male,Peptococcia,8.009878755173922,9,9
+Class,gender,male,Actinomycetes,6.751234280824734,9,9
+Class,gender,male,Bacilli,4.112753658142591,9,9
+Class,gender,male,Fusobacteriia,0.09148028530660038,8,9
+Class,gender,male,Bacteroidia,0.12236318630528807,6,9
+Order,fecal_color,Normal,Erysipelotrichales,68.17689240587063,16,16
+Order,fecal_color,Normal,Lachnospirales,9.39760725389135,16,16
+Order,fecal_color,Normal,Coriobacteriales,6.21886490303244,16,16
+Order,fecal_color,Normal,Peptococcales,3.21089297339254,16,16
+Order,fecal_color,Normal,Actinomycetales,6.542576579703219,16,16
+Order,fecal_color,Normal,Lactobacillales,3.821178448331623,16,16
+Order,fecal_color,Normal,Peptostreptococcales,1.5324688708503658,16,16
+Order,fecal_color,Normal,Oscillospirales,0.8211073104946832,16,16
+Order,fecal_color,Normal,Fusobacteriales,0.06693764685658196,13,16
+Order,fecal_color,Normal,Bacteroidales,0.10672026627787934,14,16
+Order,fecal_color,Normal,MOL361,0.10475334129869021,16,16
+Order,fecal_color,Abnormally Dark,Erysipelotrichales,36.07068429202413,14,14
+Order,fecal_color,Abnormally Dark,Lachnospirales,22.76056582540981,14,14
+Order,fecal_color,Abnormally Dark,Coriobacteriales,15.021721163759,14,14
+Order,fecal_color,Abnormally Dark,Peptococcales,11.645900741160913,14,14
+Order,fecal_color,Abnormally Dark,Actinomycetales,3.5509075704112414,14,14
+Order,fecal_color,Abnormally Dark,Lactobacillales,2.0234537734142424,14,14
+Order,fecal_color,Abnormally Dark,Peptostreptococcales,4.47567129551964,14,14
+Order,fecal_color,Abnormally Dark,Oscillospirales,3.902141502715476,14,14
+Order,fecal_color,Abnormally Dark,Fusobacteriales,0.3567129455652729,13,14
+Order,fecal_color,Abnormally Dark,Bacteroidales,0.07958956554130113,13,14
+Order,fecal_color,Abnormally Dark,MOL361,0.11265132447897655,13,14
+Order,fecal_odor,Normal,Erysipelotrichales,69.00679593883032,13,13
+Order,fecal_odor,Normal,Lachnospirales,9.71929267291447,13,13
+Order,fecal_odor,Normal,Coriobacteriales,6.1849138522655105,13,13
+Order,fecal_odor,Normal,Peptococcales,2.9617469303747623,13,13
+Order,fecal_odor,Normal,Actinomycetales,5.506659352345725,13,13
+Order,fecal_odor,Normal,Lactobacillales,3.9974440938971005,13,13
+Order,fecal_odor,Normal,Peptostreptococcales,1.6587786741395323,13,13
+Order,fecal_odor,Normal,Oscillospirales,0.679964419153537,13,13
+Order,fecal_odor,Normal,Fusobacteriales,0.07635488432884674,11,13
+Order,fecal_odor,Normal,Bacteroidales,0.11134247590611267,12,13
+Order,fecal_odor,Normal,MOL361,0.09670670584408211,13,13
+Order,fecal_odor,Moderately Unpleasant,Erysipelotrichales,68.84546690573463,8,8
+Order,fecal_odor,Moderately Unpleasant,Lachnospirales,6.901464687571672,8,8
+Order,fecal_odor,Moderately Unpleasant,Coriobacteriales,5.36430969850444,8,8
+Order,fecal_odor,Moderately Unpleasant,Peptococcales,3.6708851241273903,8,8
+Order,fecal_odor,Moderately Unpleasant,Actinomycetales,8.468748793707665,8,8
+Order,fecal_odor,Moderately Unpleasant,Lactobacillales,3.5074443461620404,8,8
+Order,fecal_odor,Moderately Unpleasant,Peptostreptococcales,1.1322318822862623,8,8
+Order,fecal_odor,Moderately Unpleasant,Oscillospirales,1.8162409539568436,8,8
+Order,fecal_odor,Moderately Unpleasant,Fusobacteriales,0.098436824436381,7,8
+Order,fecal_odor,Moderately Unpleasant,Bacteroidales,0.09708912903637712,7,8
+Order,fecal_odor,Moderately Unpleasant,MOL361,0.09768165447629873,8,8
+Order,fecal_odor,Unpleasant,Erysipelotrichales,16.44086401462185,9,9
+Order,fecal_odor,Unpleasant,Lachnospirales,31.938568374393046,9,9
+Order,fecal_odor,Unpleasant,Coriobacteriales,20.720841897073097,9,9
+Order,fecal_odor,Unpleasant,Peptococcales,16.28301187362693,9,9
+Order,fecal_odor,Unpleasant,Actinomycetales,1.673041036761461,9,9
+Order,fecal_odor,Unpleasant,Lactobacillales,1.0489866679051914,9,9
+Order,fecal_odor,Unpleasant,Peptostreptococcales,6.28410247208631,9,9
+Order,fecal_odor,Unpleasant,Oscillospirales,4.933136991697874,9,9
+Order,fecal_odor,Unpleasant,Fusobacteriales,0.47609727731700846,8,9
+Order,fecal_odor,Unpleasant,Bacteroidales,0.06640143988375594,8,9
+Order,fecal_odor,Unpleasant,MOL361,0.1349479546334731,8,9
+Order,gender,female,Erysipelotrichales,53.00105457561357,21,21
+Order,gender,female,Lachnospirales,16.787918686343705,21,21
+Order,gender,female,Coriobacteriales,10.683415530772994,21,21
+Order,gender,female,Peptococcales,6.777523293046101,21,21
+Order,gender,female,Actinomycetales,4.458705844456489,21,21
+Order,gender,female,Lactobacillales,2.4977345275153358,21,21
+Order,gender,female,Peptostreptococcales,3.0466586933888444,21,21
+Order,gender,female,Oscillospirales,2.3040766116948257,21,21
+Order,gender,female,Fusobacteriales,0.24960290570760613,18,21
+Order,gender,female,Bacteroidales,0.08192902387031868,21,21
+Order,gender,female,MOL361,0.11138030759021221,21,21
+Order,gender,male,Erysipelotrichales,53.644190277153655,9,9
+Order,gender,male,Lachnospirales,12.940371689420124,9,9
+Order,gender,male,Coriobacteriales,9.49491206610135,9,9
+Order,gender,male,Peptococcales,8.009878755173922,9,9
+Order,gender,male,Actinomycetales,6.751234280824734,9,9
+Order,gender,male,Lactobacillales,4.112753658142591,9,9
+Order,gender,male,Peptostreptococcales,2.5776741677461206,9,9
+Order,gender,male,Oscillospirales,2.153565462260029,9,9
+Order,gender,male,Fusobacteriales,0.09148028530660038,8,9
+Order,gender,male,Bacteroidales,0.12236318630528807,6,9
+Order,gender,male,MOL361,0.1015761715655843,8,9
+Family,fecal_color,Normal,Erysipelotrichaceae,68.17689240587063,16,16
+Family,fecal_color,Normal,Lachnospiraceae,9.39760725389135,16,16
+Family,fecal_color,Normal,Coriobacteriaceae,4.0314247582294085,16,16
+Family,fecal_color,Normal,Peptococcaceae,3.21089297339254,16,16
+Family,fecal_color,Normal,Bifidobacteriaceae,6.542576579703219,16,16
+Family,fecal_color,Normal,Lactobacillaceae,3.7751535154882903,16,16
+Family,fecal_color,Normal,Peptostreptococcaceae,1.159977107093177,16,16
+Family,fecal_color,Normal,Ruminococcaceae,0.6645437770177618,16,16
+Family,fecal_color,Normal,Atopobiaceae,2.066275243229649,16,16
+Family,fecal_color,Normal,Anaerovoracaceae,0.3724917637571889,16,16
+Family,fecal_color,Normal,Oscillospiraceae,0.15656353347692134,15,16
+Family,fecal_color,Normal,Fusobacteriaceae,0.06693764685658196,13,16
+Family,fecal_color,Normal,Turicibacteraceae,0.10475334129869021,16,16
+Family,fecal_color,Normal,Eggerthellaceae,0.12116490157338289,16,16
+Family,fecal_color,Normal,Streptococcaceae,0.046024932843333,14,16
+Family,fecal_color,Normal,Muribaculaceae,0.10002707087846682,14,16
+Family,fecal_color,Normal,Bacteroidaceae,0.0066931953994125055,11,16
+Family,fecal_color,Abnormally Dark,Erysipelotrichaceae,36.07068429202413,14,14
+Family,fecal_color,Abnormally Dark,Lachnospiraceae,22.76056582540981,14,14
+Family,fecal_color,Abnormally Dark,Coriobacteriaceae,14.170021057172463,14,14
+Family,fecal_color,Abnormally Dark,Peptococcaceae,11.645900741160913,14,14
+Family,fecal_color,Abnormally Dark,Bifidobacteriaceae,3.5509075704112414,14,14
+Family,fecal_color,Abnormally Dark,Lactobacillaceae,1.880271228174005,14,14
+Family,fecal_color,Abnormally Dark,Peptostreptococcaceae,3.620017522085101,14,14
+Family,fecal_color,Abnormally Dark,Ruminococcaceae,3.131373448615259,14,14
+Family,fecal_color,Abnormally Dark,Atopobiaceae,0.8005662255343438,14,14
+Family,fecal_color,Abnormally Dark,Anaerovoracaceae,0.8556537734345384,14,14
+Family,fecal_color,Abnormally Dark,Oscillospiraceae,0.7707680541002169,14,14
+Family,fecal_color,Abnormally Dark,Fusobacteriaceae,0.3567129455652729,13,14
+Family,fecal_color,Abnormally Dark,Turicibacteraceae,0.11265132447897655,13,14
+Family,fecal_color,Abnormally Dark,Eggerthellaceae,0.05113388105219126,11,14
+Family,fecal_color,Abnormally Dark,Streptococcaceae,0.14318254524023738,11,14
+Family,fecal_color,Abnormally Dark,Muribaculaceae,0.04391483821400184,9,14
+Family,fecal_color,Abnormally Dark,Bacteroidaceae,0.03567472732729929,13,14
+Family,fecal_odor,Normal,Erysipelotrichaceae,69.00679593883032,13,13
+Family,fecal_odor,Normal,Lachnospiraceae,9.71929267291447,13,13
+Family,fecal_odor,Normal,Coriobacteriaceae,3.7117711670809093,13,13
+Family,fecal_odor,Normal,Peptococcaceae,2.9617469303747623,13,13
+Family,fecal_odor,Normal,Bifidobacteriaceae,5.506659352345725,13,13
+Family,fecal_odor,Normal,Lactobacillaceae,3.9742156245237568,13,13
+Family,fecal_odor,Normal,Peptostreptococcaceae,1.2661690994108543,13,13
+Family,fecal_odor,Normal,Ruminococcaceae,0.5405769086801466,13,13
+Family,fecal_odor,Normal,Atopobiaceae,2.340214726991719,13,13
+Family,fecal_odor,Normal,Anaerovoracaceae,0.39260957472867797,13,13
+Family,fecal_odor,Normal,Oscillospiraceae,0.1393875104733904,12,13
+Family,fecal_odor,Normal,Fusobacteriaceae,0.07635488432884674,11,13
+Family,fecal_odor,Normal,Turicibacteraceae,0.09670670584408211,13,13
+Family,fecal_odor,Normal,Eggerthellaceae,0.13292795819288253,13,13
+Family,fecal_odor,Normal,Streptococcaceae,0.023228469373344406,11,13
+Family,fecal_odor,Normal,Muribaculaceae,0.10447580626155974,12,13
+Family,fecal_odor,Normal,Bacteroidaceae,0.006866669644552923,9,13
+Family,fecal_odor,Moderately Unpleasant,Erysipelotrichaceae,68.84546690573463,8,8
+Family,fecal_odor,Moderately Unpleasant,Lachnospiraceae,6.901464687571672,8,8
+Family,fecal_odor,Moderately Unpleasant,Coriobacteriaceae,3.8069736427082335,8,8
+Family,fecal_odor,Moderately Unpleasant,Peptococcaceae,3.6708851241273903,8,8
+Family,fecal_odor,Moderately Unpleasant,Bifidobacteriaceae,8.468748793707665,8,8
+Family,fecal_odor,Moderately Unpleasant,Lactobacillaceae,3.4106817437668067,8,8
+Family,fecal_odor,Moderately Unpleasant,Peptostreptococcaceae,0.8309086757638501,8,8
+Family,fecal_odor,Moderately Unpleasant,Ruminococcaceae,1.4546424193607268,8,8
+Family,fecal_odor,Moderately Unpleasant,Atopobiaceae,1.4534458395218413,8,8
+Family,fecal_odor,Moderately Unpleasant,Anaerovoracaceae,0.30132320652241235,8,8
+Family,fecal_odor,Moderately Unpleasant,Oscillospiraceae,0.3615985345961168,8,8
+Family,fecal_odor,Moderately Unpleasant,Fusobacteriaceae,0.098436824436381,7,8
+Family,fecal_odor,Moderately Unpleasant,Turicibacteraceae,0.09768165447629873,8,8
+Family,fecal_odor,Moderately Unpleasant,Eggerthellaceae,0.10389021627436451,8,8
+Family,fecal_odor,Moderately Unpleasant,Streptococcaceae,0.09676260239523446,7,8
+Family,fecal_odor,Moderately Unpleasant,Muribaculaceae,0.08897835619760697,7,8
+Family,fecal_odor,Moderately Unpleasant,Bacteroidaceae,0.008110772838770158,7,8
+Family,fecal_odor,Unpleasant,Erysipelotrichaceae,16.44086401462185,9,9
+Family,fecal_odor,Unpleasant,Lachnospiraceae,31.938568374393046,9,9
+Family,fecal_odor,Unpleasant,Coriobacteriaceae,20.463808513151925,9,9
+Family,fecal_odor,Unpleasant,Peptococcaceae,16.28301187362693,9,9
+Family,fecal_odor,Unpleasant,Bifidobacteriaceae,1.673041036761461,9,9
+Family,fecal_odor,Unpleasant,Lactobacillaceae,0.863999597033936,9,9
+Family,fecal_odor,Unpleasant,Peptostreptococcaceae,5.125823480470038,9,9
+Family,fecal_odor,Unpleasant,Ruminococcaceae,3.978587727241122,9,9
+Family,fecal_odor,Unpleasant,Atopobiaceae,0.24644143134312435,9,9
+Family,fecal_odor,Unpleasant,Anaerovoracaceae,1.158278991616272,9,9
+Family,fecal_odor,Unpleasant,Oscillospiraceae,0.954549264456752,9,9
+Family,fecal_odor,Unpleasant,Fusobacteriaceae,0.47609727731700846,8,9
+Family,fecal_odor,Unpleasant,Turicibacteraceae,0.1349479546334731,8,9
+Family,fecal_odor,Unpleasant,Eggerthellaceae,0.010591952578046092,6,9
+Family,fecal_odor,Unpleasant,Streptococcaceae,0.18498707087125535,7,9
+Family,fecal_odor,Unpleasant,Muribaculaceae,0.01613650423004028,4,9
+Family,fecal_odor,Unpleasant,Bacteroidaceae,0.050264935653715655,8,9
+Family,gender,female,Erysipelotrichaceae,53.00105457561357,21,21
+Family,gender,female,Lachnospiraceae,16.787918686343705,21,21
+Family,gender,female,Coriobacteriaceae,9.174417367902986,21,21
+Family,gender,female,Peptococcaceae,6.777523293046101,21,21
+Family,gender,female,Bifidobacteriaceae,4.458705844456489,21,21
+Family,gender,female,Lactobacillaceae,2.45010114392865,21,21
+Family,gender,female,Peptostreptococcaceae,2.3614476453694024,21,21
+Family,gender,female,Ruminococcaceae,1.7538126850009315,21,21
+Family,gender,female,Atopobiaceae,1.4207884217102993,21,21
+Family,gender,female,Anaerovoracaceae,0.6852110480194414,21,21
+Family,gender,female,Oscillospiraceae,0.5502639266938941,21,21
+Family,gender,female,Fusobacteriaceae,0.24960290570760613,18,21
+Family,gender,female,Turicibacteraceae,0.11138030759021221,21,21
+Family,gender,female,Eggerthellaceae,0.0882097411597079,19,21
+Family,gender,female,Streptococcaceae,0.04763338358668559,18,21
+Family,gender,female,Muribaculaceae,0.05590113153566815,18,21
+Family,gender,female,Bacteroidaceae,0.026027892334650533,19,21
+Family,gender,male,Erysipelotrichaceae,53.644190277153655,9,9
+Family,gender,male,Lachnospiraceae,12.940371689420124,9,9
+Family,gender,male,Coriobacteriaceae,7.802258467346921,9,9
+Family,gender,male,Peptococcaceae,8.009878755173922,9,9
+Family,gender,male,Bifidobacteriaceae,6.751234280824734,9,9
+Family,gender,male,Lactobacillaceae,3.919347713305229,9,9
+Family,gender,male,Peptostreptococcaceae,2.183275385547199,9,9
+Family,gender,male,Ruminococcaceae,1.960206925319807,9,9
+Family,gender,male,Atopobiaceae,1.6035304659154346,9,9
+Family,gender,male,Anaerovoracaceae,0.39439878219892116,9,9
+Family,gender,male,Oscillospiraceae,0.19335853694022212,8,9
+Family,gender,male,Fusobacteriaceae,0.09148028530660038,8,9
+Family,gender,male,Turicibacteraceae,0.1015761715655843,8,9
+Family,gender,male,Eggerthellaceae,0.0891231328389931,8,9
+Family,gender,male,Streptococcaceae,0.1934059448373615,7,9
+Family,gender,male,Muribaculaceae,0.1157019007558293,5,9
+Family,gender,male,Bacteroidaceae,0.006661285549458768,5,9
+Genus,fecal_color,Normal,Allobaculum,40.44082323437206,16,16
+Genus,fecal_color,Normal,Collinsella,5.560655925437437,16,16
+Genus,fecal_color,Normal,Faecalibaculum,11.459850183585026,16,16
+Genus,fecal_color,Normal,UMGS1590,4.407810212301525,16,16
+Genus,fecal_color,Normal,Blautia_A,5.263738920026164,16,16
+Genus,fecal_color,Normal,Bifidobacterium,9.349443872492786,16,16
+Genus,fecal_color,Normal,Blautia,2.550706535907027,16,16
+Genus,fecal_color,Normal,Faecalimonas,2.401561638286634,16,16
+Genus,fecal_color,Normal,Lactobacillus,4.056516498815372,16,16
+Genus,fecal_color,Normal,Peptacetobacter,1.6476371977934123,16,16
+Genus,fecal_color,Normal,Mediterraneibacter,2.7291137194628714,16,16
+Genus,fecal_color,Normal,Dubosiella,3.214665280406903,16,16
+Genus,fecal_color,Normal,Faecalibacterium,0.8311082179014853,16,16
+Genus,fecal_color,Normal,Leptogranulimonas,2.2605152957014214,16,16
+Genus,fecal_color,Normal,Limosilactobacillus,0.8617666919518991,16,16
+Genus,fecal_color,Normal,Gallibacter,0.5143943840077756,16,16
+Genus,fecal_color,Normal,Faecousia,0.21466464880693525,15,16
+Genus,fecal_color,Normal,Ileibacterium,0.5676725936067264,16,16
+Genus,fecal_color,Normal,Negativibacillus,0.07010826879546249,13,16
+Genus,fecal_color,Normal,Holdemanella,0.12186322559492187,15,16
+Genus,fecal_color,Normal,Granulimonas,0.290561368461635,16,16
+Genus,fecal_color,Normal,Kribbibacterium,0.22367676275738374,16,16
+Genus,fecal_color,Normal,Fusobacterium_A,0.08960708201239086,13,16
+Genus,fecal_color,Normal,Turicibacter,0.1524244404377233,16,16
+Genus,fecal_color,Normal,Adlercreutzia,0.17144547403578803,16,16
+Genus,fecal_color,Normal,Cetobacterium_A,1.8567685729411612e-5,1,16
+Genus,fecal_color,Normal,Streptococcus,0.06739248869172841,14,16
+Genus,fecal_color,Normal,Amulumruptor,0.13678419242146678,14,16
+Genus,fecal_color,Normal,Ligilactobacillus,0.18828122482306564,14,16
+Genus,fecal_color,Normal,Oliverpabstia,0.04606619949461621,16,16
+Genus,fecal_color,Normal,Alitiscatomonas,0.012732784053767675,13,16
+Genus,fecal_color,Normal,Schaedlerella,0.03918497108571713,16,16
+Genus,fecal_color,Normal,UBA9414,0.025224414615290375,16,16
+Genus,fecal_color,Normal,Alloprevotella,0.009437013343695082,11,16
+Genus,fecal_color,Normal,Allofournierella,0.004849589647439918,11,16
+Genus,fecal_color,Normal,Enterocloster,0.01028055799155928,12,16
+Genus,fecal_color,Normal,Avimicrobium,0.006864893078231171,13,16
+Genus,fecal_color,Normal,Roseburia,5.514301089280032e-4,3,16
+Genus,fecal_color,Abnormally Dark,Allobaculum,18.485957931922865,14,14
+Genus,fecal_color,Abnormally Dark,Collinsella,15.442106237202665,14,14
+Genus,fecal_color,Abnormally Dark,Faecalibaculum,7.849437180273632,14,14
+Genus,fecal_color,Abnormally Dark,UMGS1590,12.85187150930972,14,14
+Genus,fecal_color,Abnormally Dark,Blautia_A,9.339492754428626,14,14
+Genus,fecal_color,Abnormally Dark,Bifidobacterium,4.791615844335015,14,14
+Genus,fecal_color,Abnormally Dark,Blautia,6.434476991611955,14,14
+Genus,fecal_color,Abnormally Dark,Faecalimonas,6.353311383076692,14,14
+Genus,fecal_color,Abnormally Dark,Lactobacillus,1.6448346454910758,14,14
+Genus,fecal_color,Abnormally Dark,Peptacetobacter,4.0881156370818115,14,14
+Genus,fecal_color,Abnormally Dark,Mediterraneibacter,2.533346965504523,14,14
+Genus,fecal_color,Abnormally Dark,Dubosiella,0.9483507878279068,14,14
+Genus,fecal_color,Abnormally Dark,Faecalibacterium,3.046759953811927,14,14
+Genus,fecal_color,Abnormally Dark,Leptogranulimonas,0.8425337960130092,14,14
+Genus,fecal_color,Abnormally Dark,Limosilactobacillus,0.8003356150335643,11,14
+Genus,fecal_color,Abnormally Dark,Gallibacter,1.005554033919726,14,14
+Genus,fecal_color,Abnormally Dark,Faecousia,0.8730122454474891,14,14
+Genus,fecal_color,Abnormally Dark,Ileibacterium,0.35918742240168744,14,14
+Genus,fecal_color,Abnormally Dark,Negativibacillus,0.35747427980523055,14,14
+Genus,fecal_color,Abnormally Dark,Holdemanella,0.33494004432070745,14,14
+Genus,fecal_color,Abnormally Dark,Granulimonas,0.12156247612113383,13,14
+Genus,fecal_color,Abnormally Dark,Kribbibacterium,0.14326963705127538,11,14
+Genus,fecal_color,Abnormally Dark,Fusobacterium_A,0.20778941949000962,13,14
+Genus,fecal_color,Abnormally Dark,Turicibacter,0.12989453806314866,13,14
+Genus,fecal_color,Abnormally Dark,Adlercreutzia,0.07208156727683959,11,14
+Genus,fecal_color,Abnormally Dark,Cetobacterium_A,0.18209871809614553,5,14
+Genus,fecal_color,Abnormally Dark,Streptococcus,0.15919938585710217,11,14
+Genus,fecal_color,Abnormally Dark,Amulumruptor,0.05991187752481218,9,14
+Genus,fecal_color,Abnormally Dark,Ligilactobacillus,0.010080502315098494,10,14
+Genus,fecal_color,Abnormally Dark,Oliverpabstia,0.14793798371810654,14,14
+Genus,fecal_color,Abnormally Dark,Alitiscatomonas,0.12458617482861511,14,14
+Genus,fecal_color,Abnormally Dark,Schaedlerella,0.07050521468402292,14,14
+Genus,fecal_color,Abnormally Dark,UBA9414,0.052291653069283885,14,14
+Genus,fecal_color,Abnormally Dark,Alloprevotella,0.038696562595118736,13,14
+Genus,fecal_color,Abnormally Dark,Allofournierella,0.035170222881630395,13,14
+Genus,fecal_color,Abnormally Dark,Enterocloster,0.024813519717117503,13,14
+Genus,fecal_color,Abnormally Dark,Avimicrobium,0.024457120988762085,13,14
+Genus,fecal_color,Abnormally Dark,Roseburia,0.012938166901950727,5,14
+Genus,fecal_odor,Normal,Allobaculum,40.67578918005758,13,13
+Genus,fecal_odor,Normal,Collinsella,5.089707263191928,13,13
+Genus,fecal_odor,Normal,Faecalibaculum,12.39368889589306,13,13
+Genus,fecal_odor,Normal,UMGS1590,3.964041069020927,13,13
+Genus,fecal_odor,Normal,Blautia_A,5.2558843413209715,13,13
+Genus,fecal_odor,Normal,Bifidobacterium,7.967526489977718,13,13
+Genus,fecal_odor,Normal,Blautia,2.7303530094577377,13,13
+Genus,fecal_odor,Normal,Faecalimonas,2.3636481103378943,13,13
+Genus,fecal_odor,Normal,Lactobacillus,4.1845948869725484,13,13
+Genus,fecal_odor,Normal,Peptacetobacter,1.7720570798236406,13,13
+Genus,fecal_odor,Normal,Mediterraneibacter,2.986696695332155,13,13
+Genus,fecal_odor,Normal,Dubosiella,3.5367932534213673,13,13
+Genus,fecal_odor,Normal,Faecalibacterium,0.6712825325860299,13,13
+Genus,fecal_odor,Normal,Leptogranulimonas,2.606035918373532,13,13
+Genus,fecal_odor,Normal,Limosilactobacillus,0.9227266662110156,13,13
+Genus,fecal_odor,Normal,Gallibacter,0.5248184865271337,13,13
+Genus,fecal_odor,Normal,Faecousia,0.1871728730606121,12,13
+Genus,fecal_odor,Normal,Ileibacterium,0.4853450253764135,13,13
+Genus,fecal_odor,Normal,Negativibacillus,0.05556071758806093,10,13
+Genus,fecal_odor,Normal,Holdemanella,0.12454367483323914,13,13
+Genus,fecal_odor,Normal,Granulimonas,0.3180365845973734,13,13
+Genus,fecal_odor,Normal,Kribbibacterium,0.21714538086819976,13,13
+Genus,fecal_odor,Normal,Fusobacterium_A,0.1018502505903324,11,13
+Genus,fecal_odor,Normal,Turicibacter,0.13225730097110053,13,13
+Genus,fecal_odor,Normal,Adlercreutzia,0.18778642589089706,13,13
+Genus,fecal_odor,Normal,Cetobacterium_A,2.285253628235275e-5,1,13
+Genus,fecal_odor,Normal,Streptococcus,0.031506021414855166,11,13
+Genus,fecal_odor,Normal,Amulumruptor,0.14116499989882447,12,13
+Genus,fecal_odor,Normal,Ligilactobacillus,0.2311481738327815,12,13
+Genus,fecal_odor,Normal,Oliverpabstia,0.04111248948966077,13,13
+Genus,fecal_odor,Normal,Alitiscatomonas,0.007301936425670275,10,13
+Genus,fecal_odor,Normal,Schaedlerella,0.03733477855912825,13,13
+Genus,fecal_odor,Normal,UBA9414,0.02439636701396651,13,13
+Genus,fecal_odor,Normal,Alloprevotella,0.009568520680364961,9,13
+Genus,fecal_odor,Normal,Allofournierella,0.004657945930299997,8,13
+Genus,fecal_odor,Normal,Enterocloster,0.010064232307538728,10,13
+Genus,fecal_odor,Normal,Avimicrobium,0.005780256476176505,11,13
+Genus,fecal_odor,Normal,Roseburia,5.993131529781654e-4,2,13
+Genus,fecal_odor,Moderately Unpleasant,Allobaculum,38.74395741820444,8,8
+Genus,fecal_odor,Moderately Unpleasant,Collinsella,5.303922800662264,8,8
+Genus,fecal_odor,Moderately Unpleasant,Faecalibaculum,14.807319315990924,8,8
+Genus,fecal_odor,Moderately Unpleasant,UMGS1590,5.231865989677988,8,8
+Genus,fecal_odor,Moderately Unpleasant,Blautia_A,4.212229816754216,8,8
+Genus,fecal_odor,Moderately Unpleasant,Bifidobacterium,11.910702282057569,8,8
+Genus,fecal_odor,Moderately Unpleasant,Blautia,2.0954057150813115,8,8
+Genus,fecal_odor,Moderately Unpleasant,Faecalimonas,1.7573984361042432,8,8
+Genus,fecal_odor,Moderately Unpleasant,Lactobacillus,3.5243854881804064,8,8
+Genus,fecal_odor,Moderately Unpleasant,Peptacetobacter,1.2005921424722592,8,8
+Genus,fecal_odor,Moderately Unpleasant,Mediterraneibacter,1.4968509548163196,8,8
+Genus,fecal_odor,Moderately Unpleasant,Dubosiella,1.848971635609853,8,8
+Genus,fecal_odor,Moderately Unpleasant,Faecalibacterium,1.7021321160898828,8,8
+Genus,fecal_odor,Moderately Unpleasant,Leptogranulimonas,1.5042572332761581,8,8
+Genus,fecal_odor,Moderately Unpleasant,Limosilactobacillus,1.2067419744140742,8,8
+Genus,fecal_odor,Moderately Unpleasant,Gallibacter,0.4463272876899088,8,8
+Genus,fecal_odor,Moderately Unpleasant,Faecousia,0.505840553005644,8,8
+Genus,fecal_odor,Moderately Unpleasant,Ileibacterium,0.6395547069098726,8,8
+Genus,fecal_odor,Moderately Unpleasant,Negativibacillus,0.2545151301813673,8,8
+Genus,fecal_odor,Moderately Unpleasant,Holdemanella,0.13588512638428063,7,8
+Genus,fecal_odor,Moderately Unpleasant,Granulimonas,0.24795647387952385,8,8
+Genus,fecal_odor,Moderately Unpleasant,Kribbibacterium,0.3147777326905559,8,8
+Genus,fecal_odor,Moderately Unpleasant,Fusobacterium_A,0.04022521077048848,7,8
+Genus,fecal_odor,Moderately Unpleasant,Turicibacter,0.15262726601945345,8,8
+Genus,fecal_odor,Moderately Unpleasant,Adlercreutzia,0.14989338187242204,8,8
+Genus,fecal_odor,Moderately Unpleasant,Cetobacterium_A,0.09260520431317987,2,8
+Genus,fecal_odor,Moderately Unpleasant,Streptococcus,0.14116375576399384,7,8
+Genus,fecal_odor,Moderately Unpleasant,Amulumruptor,0.12866273084905863,7,8
+Genus,fecal_odor,Moderately Unpleasant,Ligilactobacillus,0.001573331185219637,5,8
+Genus,fecal_odor,Moderately Unpleasant,Oliverpabstia,0.04500747813590132,8,8
+Genus,fecal_odor,Moderately Unpleasant,Alitiscatomonas,0.04579041493465065,8,8
+Genus,fecal_odor,Moderately Unpleasant,Schaedlerella,0.04304213580644328,8,8
+Genus,fecal_odor,Moderately Unpleasant,UBA9414,0.02654707557506872,8,8
+Genus,fecal_odor,Moderately Unpleasant,Alloprevotella,0.011313097136864774,7,8
+Genus,fecal_odor,Moderately Unpleasant,Allofournierella,0.003891229006847691,7,8
+Genus,fecal_odor,Moderately Unpleasant,Enterocloster,0.011745960675780124,7,8
+Genus,fecal_odor,Moderately Unpleasant,Avimicrobium,0.012291582709012086,7,8
+Genus,fecal_odor,Moderately Unpleasant,Roseburia,0.0020298151125540307,3,8
+Genus,fecal_odor,Unpleasant,Allobaculum,7.457740456721002,9,9
+Genus,fecal_odor,Unpleasant,Collinsella,21.84026725567146,9,9
+Genus,fecal_odor,Unpleasant,Faecalibaculum,1.5192459207393374,9,9
+Genus,fecal_odor,Unpleasant,UMGS1590,17.451522523607167,9,9
+Genus,fecal_odor,Unpleasant,Blautia_A,12.549820701245892,9,9
+Genus,fecal_odor,Unpleasant,Bifidobacterium,1.9789179060448783,9,9
+Genus,fecal_odor,Unpleasant,Blautia,8.737349734830968,9,9
+Genus,fecal_odor,Unpleasant,Faecalimonas,9.176081405825915,9,9
+Genus,fecal_odor,Unpleasant,Lactobacillus,0.5930146202038489,9,9
+Genus,fecal_odor,Unpleasant,Peptacetobacter,5.661592767372728,9,9
+Genus,fecal_odor,Unpleasant,Mediterraneibacter,3.1478680389578537,9,9
+Genus,fecal_odor,Unpleasant,Dubosiella,0.43794112630494925,9,9
+Genus,fecal_odor,Unpleasant,Faecalibacterium,3.7342934430503654,9,9
+Genus,fecal_odor,Unpleasant,Leptogranulimonas,0.22791034114885406,9,9
+Genus,fecal_odor,Unpleasant,Limosilactobacillus,0.3715092472938324,6,9
+Genus,fecal_odor,Unpleasant,Gallibacter,1.323867554736507,9,9
+Genus,fecal_odor,Unpleasant,Faecousia,1.019648227038078,9,9
+Genus,fecal_odor,Unpleasant,Ileibacterium,0.29838471401765443,9,9
+Genus,fecal_odor,Unpleasant,Negativibacillus,0.37421798310054416,9,9
+Genus,fecal_odor,Unpleasant,Holdemanella,0.4369803829002556,9,9
+Genus,fecal_odor,Unpleasant,Granulimonas,0.025858796697776538,8,9
+Genus,fecal_odor,Unpleasant,Kribbibacterium,0.02705459000277234,6,9
+Genus,fecal_odor,Unpleasant,Fusobacterium_A,0.29965669346890667,8,9
+Genus,fecal_odor,Unpleasant,Turicibacter,0.1463279487897466,8,9
+Genus,fecal_odor,Unpleasant,Adlercreutzia,0.0124332149874805,6,9
+Genus,fecal_odor,Unpleasant,Cetobacterium_A,0.20094893542673317,3,9
+Genus,fecal_odor,Unpleasant,Streptococcus,0.19646476628466855,7,9
+Genus,fecal_odor,Unpleasant,Amulumruptor,0.018096279845961287,4,9
+Genus,fecal_odor,Unpleasant,Ligilactobacillus,0.015123746696945896,7,9
+Genus,fecal_odor,Unpleasant,Oliverpabstia,0.21262986394606115,9,9
+Genus,fecal_odor,Unpleasant,Alitiscatomonas,0.16518694438333065,9,9
+Genus,fecal_odor,Unpleasant,Schaedlerella,0.08714925946973126,9,9
+Genus,fecal_odor,Unpleasant,UBA9414,0.06734937789250067,9,9
+Genus,fecal_odor,Unpleasant,Alloprevotella,0.05309428265456899,8,9
+Genus,fecal_odor,Unpleasant,Allofournierella,0.053143713950353624,9,9
+Genus,fecal_odor,Unpleasant,Enterocloster,0.031897277611149896,8,9
+Genus,fecal_odor,Unpleasant,Avimicrobium,0.030973554136886298,8,9
+Genus,fecal_odor,Unpleasant,Roseburia,0.018436402942334427,3,9
+Genus,gender,female,Allobaculum,28.139558681539434,21,21
+Genus,gender,female,Collinsella,10.680906565189956,21,21
+Genus,gender,female,Faecalibaculum,11.733406266825078,21,21
+Genus,gender,female,UMGS1590,8.17401117050572,21,21
+Genus,gender,female,Blautia_A,7.812932095781368,21,21
+Genus,gender,female,Bifidobacterium,6.3156393076473725,21,21
+Genus,gender,female,Blautia,5.066015191615031,21,21
+Genus,gender,female,Faecalimonas,4.5645838862138595,21,21
+Genus,gender,female,Lactobacillus,2.381029338694104,21,21
+Genus,gender,female,Peptacetobacter,2.8464747404464434,21,21
+Genus,gender,female,Mediterraneibacter,1.9723420334256079,21,21
+Genus,gender,female,Dubosiella,2.0699796255925116,21,21
+Genus,gender,female,Faecalibacterium,1.7945562203761332,21,21
+Genus,gender,female,Leptogranulimonas,1.5686304746874948,21,21
+Genus,gender,female,Limosilactobacillus,0.9074380438960126,18,21
+Genus,gender,female,Gallibacter,0.8641828032593949,21,21
+Genus,gender,female,Faecousia,0.6515769867143534,21,21
+Genus,gender,female,Ileibacterium,0.47670251526058893,21,21
+Genus,gender,female,Negativibacillus,0.21419256699866768,20,21
+Genus,gender,female,Holdemanella,0.21816377724906774,21,21
+Genus,gender,female,Granulimonas,0.18449216019526363,20,21
+Genus,gender,female,Kribbibacterium,0.19993626103871798,19,21
+Genus,gender,female,Fusobacterium_A,0.15692389923982233,18,21
+Genus,gender,female,Turicibacter,0.15189435581494368,21,21
+Genus,gender,female,Adlercreutzia,0.12308285977211691,19,21
+Genus,gender,female,Cetobacterium_A,0.12139914539743034,5,21
+Genus,gender,female,Streptococcus,0.06750681130672521,18,21
+Genus,gender,female,Amulumruptor,0.07888303369209772,18,21
+Genus,gender,female,Ligilactobacillus,0.11568138394886718,16,21
+Genus,gender,female,Oliverpabstia,0.10525798991439818,21,21
+Genus,gender,female,Alitiscatomonas,0.05173959243651731,19,21
+Genus,gender,female,Schaedlerella,0.055828122194773115,21,21
+Genus,gender,female,UBA9414,0.0389769834560227,21,21
+Genus,gender,female,Alloprevotella,0.02899522534760798,19,21
+Genus,gender,female,Allofournierella,0.020293881933319435,17,21
+Genus,gender,female,Enterocloster,0.01911581895626457,18,21
+Genus,gender,female,Avimicrobium,0.01891334056639588,18,21
+Genus,gender,female,Roseburia,0.008756842870518523,5,21
+Genus,gender,male,Allobaculum,34.99176116494944,9,9
+Genus,gender,male,Collinsella,8.984549362094137,9,9
+Genus,gender,male,Faecalibaculum,5.205354650873846,9,9
+Genus,gender,male,UMGS1590,8.755214438504485,9,9
+Genus,gender,male,Blautia_A,5.655683030112296,9,9
+Genus,gender,male,Bifidobacterium,9.338366479997775,9,9
+Genus,gender,male,Blautia,2.7230737147960156,9,9
+Genus,gender,male,Faecalimonas,3.501675996129863,9,9
+Genus,gender,male,Lactobacillus,4.2144814339272045,9,9
+Genus,gender,male,Peptacetobacter,2.646649392718294,9,9
+Genus,gender,male,Mediterraneibacter,4.1903882585035,9,9
+Genus,gender,male,Dubosiella,2.360220375406488,9,9
+Genus,gender,male,Faecalibacterium,2.0296322457657716,9,9
+Genus,gender,male,Leptogranulimonas,1.6691642118852754,9,9
+Genus,gender,male,Limosilactobacillus,0.659640751098225,9,9
+Genus,gender,male,Gallibacter,0.4622475278392535,9,9
+Genus,gender,male,Faecousia,0.2192987884638212,8,9
+Genus,gender,male,Ileibacterium,0.45562584342876444,9,9
+Genus,gender,male,Negativibacillus,0.18092536789206742,7,9
+Genus,gender,male,Holdemanella,0.22861476753091464,8,9
+Genus,gender,male,Granulimonas,0.2751690218868331,9,9
+Genus,gender,male,Kribbibacterium,0.153993515669213,8,9
+Genus,gender,male,Fusobacterium_A,0.1163737001135688,8,9
+Genus,gender,male,Turicibacter,0.11861478975264857,8,9
+Genus,gender,male,Adlercreutzia,0.1297254968037675,8,9
+Genus,gender,male,Cetobacterium_A,3.300921907450953e-5,1,9
+Genus,gender,male,Streptococcus,0.20993646484731726,7,9
+Genus,gender,male,Amulumruptor,0.15230773961742078,5,9
+Genus,gender,male,Ligilactobacillus,0.08047972962824651,8,9
+Genus,gender,male,Oliverpabstia,0.06641924175166548,9,9
+Genus,gender,male,Alitiscatomonas,0.09571106125489232,8,9
+Genus,gender,male,Schaedlerella,0.049071330761951054,9,9
+Genus,gender,male,UBA9414,0.035239680470904845,9,9
+Genus,gender,male,Alloprevotella,0.00931603972566845,5,9
+Genus,gender,male,Allofournierella,0.015978337122461782,7,9
+Genus,gender,male,Enterocloster,0.012271778424781946,7,9
+Genus,gender,male,Avimicrobium,0.006117536800006049,8,9
+Genus,gender,male,Roseburia,6.737242321410283e-4,3,9
+Species,fecal_color,Normal,Allobaculum mucilyticum,25.883827521087184,16,16
+Species,fecal_color,Normal,Collinsella intestinalis,7.842474582644781,16,16
+Species,fecal_color,Normal,UMGS1590 sp900553245,6.054450440882618,16,16
+Species,fecal_color,Normal,Bifidobacterium globosum,11.885592496307028,16,16
+Species,fecal_color,Normal,Blautia_A sp900541345,4.215517674918126,16,16
+Species,fecal_color,Normal,Faecalimonas umbilicata,2.591057500728873,16,16
+Species,fecal_color,Normal,Blautia hansenii,2.8378635084150763,16,16
+Species,fecal_color,Normal,Lactobacillus acidophilus,5.011383024631082,16,16
+Species,fecal_color,Normal,Allobaculum sp910577085,5.219845612875658,16,16
+Species,fecal_color,Normal,Faecalibaculum rodentium,5.040067518976048,16,16
+Species,fecal_color,Normal,Dubosiella newyorkensis,4.506918138975226,16,16
+Species,fecal_color,Normal,Faecalibacterium sp900540455,1.1512662859420997,16,16
+Species,fecal_color,Normal,Mediterraneibacter gnavus,3.1424920509713488,16,16
+Species,fecal_color,Normal,Blautia_A sp026169535,2.0899106525657722,16,16
+Species,fecal_color,Normal,Leptogranulimonas caecicola,3.1766152196349715,16,16
+Species,fecal_color,Normal,Peptacetobacter hiranonis,1.23797061059622,16,16
+Species,fecal_color,Normal,Allobaculum stercoricanis,0.5475612167873208,16,16
+Species,fecal_color,Normal,Blautia_A sp030536995,1.0555554181941669,16,16
+Species,fecal_color,Normal,Limosilactobacillus reuteri,1.072873600530759,16,16
+Species,fecal_color,Normal,Gallibacter sp937900695,0.699680663807135,16,16
+Species,fecal_color,Normal,Faecalimonas sp900550235,0.8248811084550046,16,16
+Species,fecal_color,Normal,Blautia sp900556555,0.47835686737465744,16,16
+Species,fecal_color,Normal,Peptacetobacter sp900550335,0.3537706138012193,15,16
+Species,fecal_color,Normal,Faecousia sp963560135,0.18475094948652535,15,16
+Species,fecal_color,Normal,Negativibacillus sp000435195,0.09756109293146471,13,16
+Species,fecal_color,Normal,Blautia sp900753905,0.17875394154305524,16,16
+Species,fecal_color,Normal,Bifidobacterium criceti,0.2260373121169593,16,16
+Species,fecal_color,Normal,Faecousia sp937890525,0.12775658789253067,15,16
+Species,fecal_color,Normal,Kribbibacterium absianum,0.3172124688572727,16,16
+Species,fecal_color,Normal,Holdemanella hominis,0.1357010766122983,15,16
+Species,fecal_color,Normal,Fusobacterium_A sp900555845,0.12247207599704266,13,16
+Species,fecal_color,Normal,Turicibacter faecis,0.21414308352005537,16,16
+Species,fecal_color,Normal,Cetobacterium_A sp934085975,3.5233714687699395e-5,1,16
+Species,fecal_color,Normal,Streptococcus lutetiensis,0.08637310203231734,14,16
+Species,fecal_color,Normal,Granulimonas sp965141595,0.21733080228530516,16,16
+Species,fecal_color,Normal,Ligilactobacillus animalis,0.23491693979930586,14,16
+Species,fecal_color,Normal,Blautia sp900555025,0.12605368559877794,16,16
+Species,fecal_color,Normal,Oliverpabstia sp000432335,0.060266836902089047,16,16
+Species,fecal_color,Normal,Faecalimonas sp900551895,0.006434477260300416,16,16
+Species,fecal_color,Normal,Alitiscatomonas aceti,0.018191349200366302,13,16
+Species,fecal_color,Normal,Collinsella sp902470815,0.024869551310692767,16,16
+Species,fecal_color,Normal,Adlercreutzia rubneri,0.10795166183063504,16,16
+Species,fecal_color,Normal,Amulumruptor sp900539915,0.09235590715302433,14,16
+Species,fecal_color,Normal,Bifidobacterium animalis,0.09355844385110869,16,16
+Species,fecal_color,Normal,Lactobacillus johnsonii,0.07135413733039415,12,16
+Species,fecal_color,Normal,Bifidobacterium animalis_B,0.07597136137942968,16,16
+Species,fecal_color,Normal,Bifidobacterium canis,0.06619000635445721,16,16
+Species,fecal_color,Normal,Schaedlerella glycyrrhizinilytica_A,0.018111366707069643,16,16
+Species,fecal_color,Normal,Alloprevotella sp000437675,0.012907922496856204,11,16
+Species,fecal_color,Normal,Schaedlerella sp900765975,0.03751631925719841,16,16
+Species,fecal_color,Normal,Dubosiella sp910585105,0.05282466318673684,16,16
+Species,fecal_color,Normal,Collinsella sp008014645,0.012703724933477373,15,16
+Species,fecal_color,Normal,Enterocloster sp001517625,0.014105208314776484,12,16
+Species,fecal_color,Normal,Lactobacillus sp910589675,0.028957280954861393,12,16
+Species,fecal_color,Normal,Avimicrobium sp934845495,0.010012280576020436,13,16
+Species,fecal_color,Normal,Faecalibacterium sp937880095,0.0013321474352610296,2,16
+Species,fecal_color,Normal,Bifidobacterium pullorum_B,0.005354672075270123,14,16
+Species,fecal_color,Abnormally Dark,Allobaculum mucilyticum,12.027759674460015,14,14
+Species,fecal_color,Abnormally Dark,Collinsella intestinalis,16.819245353411596,14,14
+Species,fecal_color,Abnormally Dark,UMGS1590 sp900553245,14.452867844579927,14,14
+Species,fecal_color,Abnormally Dark,Bifidobacterium globosum,6.297520140525201,14,14
+Species,fecal_color,Abnormally Dark,Blautia_A sp900541345,6.854824955921239,14,14
+Species,fecal_color,Abnormally Dark,Faecalimonas umbilicata,5.9996051013420715,14,14
+Species,fecal_color,Abnormally Dark,Blautia hansenii,6.073966276352085,14,14
+Species,fecal_color,Abnormally Dark,Lactobacillus acidophilus,2.259465560969388,14,14
+Species,fecal_color,Abnormally Dark,Allobaculum sp910577085,1.7063834711820518,14,14
+Species,fecal_color,Abnormally Dark,Faecalibaculum rodentium,1.8682925595577247,14,14
+Species,fecal_color,Abnormally Dark,Dubosiella newyorkensis,1.3602481711274512,14,14
+Species,fecal_color,Abnormally Dark,Faecalibacterium sp900540455,3.453484336661857,14,14
+Species,fecal_color,Abnormally Dark,Mediterraneibacter gnavus,2.3016139082517753,14,14
+Species,fecal_color,Abnormally Dark,Blautia_A sp026169535,2.588679888265885,14,14
+Species,fecal_color,Abnormally Dark,Leptogranulimonas caecicola,1.2448365588124222,14,14
+Species,fecal_color,Abnormally Dark,Peptacetobacter hiranonis,2.496575493381998,14,14
+Species,fecal_color,Abnormally Dark,Allobaculum stercoricanis,2.218493476113289,14,14
+Species,fecal_color,Abnormally Dark,Blautia_A sp030536995,1.0854652567564496,14,14
+Species,fecal_color,Abnormally Dark,Limosilactobacillus reuteri,1.0788055252457862,11,14
+Species,fecal_color,Abnormally Dark,Gallibacter sp937900695,0.9865829432066131,14,14
+Species,fecal_color,Abnormally Dark,Faecalimonas sp900550235,0.7888168229218697,14,14
+Species,fecal_color,Abnormally Dark,Blautia sp900556555,0.6176979413046689,14,14
+Species,fecal_color,Abnormally Dark,Peptacetobacter sp900550335,0.6671403993282878,14,14
+Species,fecal_color,Abnormally Dark,Faecousia sp963560135,0.7171315681675224,14,14
+Species,fecal_color,Abnormally Dark,Negativibacillus sp000435195,0.4301450536330685,14,14
+Species,fecal_color,Abnormally Dark,Blautia sp900753905,0.37860952853440727,14,14
+Species,fecal_color,Abnormally Dark,Bifidobacterium criceti,0.28164161631395573,11,14
+Species,fecal_color,Abnormally Dark,Faecousia sp937890525,0.3229171726130074,14,14
+Species,fecal_color,Abnormally Dark,Kribbibacterium absianum,0.2225311324484292,11,14
+Species,fecal_color,Abnormally Dark,Holdemanella hominis,0.2932979541741576,14,14
+Species,fecal_color,Abnormally Dark,Fusobacterium_A sp900555845,0.22860292409060964,13,14
+Species,fecal_color,Abnormally Dark,Turicibacter faecis,0.14975951513825872,13,14
+Species,fecal_color,Abnormally Dark,Cetobacterium_A sp934085975,0.19987953222985483,5,14
+Species,fecal_color,Abnormally Dark,Streptococcus lutetiensis,0.17575984674553283,11,14
+Species,fecal_color,Abnormally Dark,Granulimonas sp965141595,0.09833181512729036,10,14
+Species,fecal_color,Abnormally Dark,Ligilactobacillus animalis,0.011237988797495359,10,14
+Species,fecal_color,Abnormally Dark,Blautia sp900555025,0.13947321523527545,14,14
+Species,fecal_color,Abnormally Dark,Oliverpabstia sp000432335,0.16316956135946672,14,14
+Species,fecal_color,Abnormally Dark,Faecalimonas sp900551895,0.15436323402201776,13,14
+Species,fecal_color,Abnormally Dark,Alitiscatomonas aceti,0.13963081671289054,14,14
+Species,fecal_color,Abnormally Dark,Collinsella sp902470815,0.11792380198646618,14,14
+Species,fecal_color,Abnormally Dark,Adlercreutzia rubneri,0.05033372257756039,11,14
+Species,fecal_color,Abnormally Dark,Amulumruptor sp900539915,0.04278918643311387,9,14
+Species,fecal_color,Abnormally Dark,Bifidobacterium animalis,0.04710069809582791,11,14
+Species,fecal_color,Abnormally Dark,Lactobacillus johnsonii,0.04849127353986903,9,14
+Species,fecal_color,Abnormally Dark,Bifidobacterium animalis_B,0.038635124614406664,10,14
+Species,fecal_color,Abnormally Dark,Bifidobacterium canis,0.028677181398638188,11,14
+Species,fecal_color,Abnormally Dark,Schaedlerella glycyrrhizinilytica_A,0.04673515231947129,14,14
+Species,fecal_color,Abnormally Dark,Alloprevotella sp000437675,0.042832924298128495,13,14
+Species,fecal_color,Abnormally Dark,Schaedlerella sp900765975,0.03484238009994947,14,14
+Species,fecal_color,Abnormally Dark,Dubosiella sp910585105,0.011107148336755954,9,14
+Species,fecal_color,Abnormally Dark,Collinsella sp008014645,0.030157396689481808,12,14
+Species,fecal_color,Abnormally Dark,Enterocloster sp001517625,0.02799962815947576,13,14
+Species,fecal_color,Abnormally Dark,Lactobacillus sp910589675,0.0193949532711489,8,14
+Species,fecal_color,Abnormally Dark,Avimicrobium sp934845495,0.0280186251214434,13,14
+Species,fecal_color,Abnormally Dark,Faecalibacterium sp937880095,0.023777183205968257,6,14
+Species,fecal_color,Abnormally Dark,Bifidobacterium pullorum_B,0.006329484829405639,7,14
+Species,fecal_odor,Normal,Allobaculum mucilyticum,25.215961307261342,13,13
+Species,fecal_odor,Normal,Collinsella intestinalis,7.539799796957997,13,13
+Species,fecal_odor,Normal,UMGS1590 sp900553245,5.693959180896064,13,13
+Species,fecal_odor,Normal,Bifidobacterium globosum,10.638208573632586,13,13
+Species,fecal_odor,Normal,Blautia_A sp900541345,4.33063502152416,13,13
+Species,fecal_odor,Normal,Faecalimonas umbilicata,2.5642851429814595,13,13
+Species,fecal_odor,Normal,Blautia hansenii,3.1186469857489127,13,13
+Species,fecal_odor,Normal,Lactobacillus acidophilus,5.235646578387687,13,13
+Species,fecal_odor,Normal,Allobaculum sp910577085,5.331874373966056,13,13
+Species,fecal_odor,Normal,Faecalibaculum rodentium,5.148746478623163,13,13
+Species,fecal_odor,Normal,Dubosiella newyorkensis,5.051221376082755,13,13
+Species,fecal_odor,Normal,Faecalibacterium sp900540455,0.9905148097281177,13,13
+Species,fecal_odor,Normal,Mediterraneibacter gnavus,3.432789306656318,13,13
+Species,fecal_odor,Normal,Blautia_A sp026169535,2.1974945513746484,13,13
+Species,fecal_odor,Normal,Leptogranulimonas caecicola,3.6947666530876213,13,13
+Species,fecal_odor,Normal,Peptacetobacter hiranonis,1.3641874751677476,13,13
+Species,fecal_odor,Normal,Allobaculum stercoricanis,0.5629674201024926,13,13
+Species,fecal_odor,Normal,Blautia_A sp030536995,1.0601856026062058,13,13
+Species,fecal_odor,Normal,Limosilactobacillus reuteri,1.1534138036152972,13,13
+Species,fecal_odor,Normal,Gallibacter sp937900695,0.7386703200615234,13,13
+Species,fecal_odor,Normal,Faecalimonas sp900550235,0.9194120833947108,13,13
+Species,fecal_odor,Normal,Blautia sp900556555,0.5173326560144941,13,13
+Species,fecal_odor,Normal,Peptacetobacter sp900550335,0.39376235148494176,13,13
+Species,fecal_odor,Normal,Faecousia sp963560135,0.16517792264936795,12,13
+Species,fecal_odor,Normal,Negativibacillus sp000435195,0.08280274440020839,10,13
+Species,fecal_odor,Normal,Blautia sp900753905,0.18665133751362786,13,13
+Species,fecal_odor,Normal,Bifidobacterium criceti,0.2100512296339741,13,13
+Species,fecal_odor,Normal,Faecousia sp937890525,0.12654786636982418,12,13
+Species,fecal_odor,Normal,Kribbibacterium absianum,0.31942679324778944,13,13
+Species,fecal_odor,Normal,Holdemanella hominis,0.1429056173464409,13,13
+Species,fecal_odor,Normal,Fusobacterium_A sp900555845,0.14051810722916158,11,13
+Species,fecal_odor,Normal,Turicibacter faecis,0.19843082559350625,13,13
+Species,fecal_odor,Normal,Cetobacterium_A sp934085975,4.3364571923322334e-5,1,13
+Species,fecal_odor,Normal,Streptococcus lutetiensis,0.044787885408914624,11,13
+Species,fecal_odor,Normal,Granulimonas sp965141595,0.24577656951650603,13,13
+Species,fecal_odor,Normal,Ligilactobacillus animalis,0.2884244884435804,12,13
+Species,fecal_odor,Normal,Blautia sp900555025,0.14109517524577483,13,13
+Species,fecal_odor,Normal,Oliverpabstia sp000432335,0.0555410318640269,13,13
+Species,fecal_odor,Normal,Faecalimonas sp900551895,0.007659024518395021,13,13
+Species,fecal_odor,Normal,Alitiscatomonas aceti,0.01235239730435078,10,13
+Species,fecal_odor,Normal,Collinsella sp902470815,0.02155158952182688,13,13
+Species,fecal_odor,Normal,Adlercreutzia rubneri,0.12058798523086368,13,13
+Species,fecal_odor,Normal,Amulumruptor sp900539915,0.09811544260661167,12,13
+Species,fecal_odor,Normal,Bifidobacterium animalis,0.09450112248223301,13,13
+Species,fecal_odor,Normal,Lactobacillus johnsonii,0.06508519363376869,10,13
+Species,fecal_odor,Normal,Bifidobacterium animalis_B,0.07654402273259374,13,13
+Species,fecal_odor,Normal,Bifidobacterium canis,0.06946402260358851,13,13
+Species,fecal_odor,Normal,Schaedlerella glycyrrhizinilytica_A,0.01752980619201075,13,13
+Species,fecal_odor,Normal,Alloprevotella sp000437675,0.013432014198189927,9,13
+Species,fecal_odor,Normal,Schaedlerella sp900765975,0.03786203502901632,13,13
+Species,fecal_odor,Normal,Dubosiella sp910585105,0.05234204255060875,13,13
+Species,fecal_odor,Normal,Collinsella sp008014645,0.013104541984546822,12,13
+Species,fecal_odor,Normal,Enterocloster sp001517625,0.014241669937793728,10,13
+Species,fecal_odor,Normal,Lactobacillus sp910589675,0.026889232264592864,10,13
+Species,fecal_odor,Normal,Avimicrobium sp934845495,0.009105845571294409,11,13
+Species,fecal_odor,Normal,Faecalibacterium sp937880095,0.001639566074167421,2,13
+Species,fecal_odor,Normal,Bifidobacterium pullorum_B,0.0053296371726147046,11,13
+Species,fecal_odor,Moderately Unpleasant,Allobaculum mucilyticum,28.90659149716078,8,8
+Species,fecal_odor,Moderately Unpleasant,Collinsella intestinalis,7.092771384538334,8,8
+Species,fecal_odor,Moderately Unpleasant,UMGS1590 sp900553245,7.222298386135336,8,8
+Species,fecal_odor,Moderately Unpleasant,Bifidobacterium globosum,15.240113590412689,8,8
+Species,fecal_odor,Moderately Unpleasant,Blautia_A sp900541345,3.028535720516078,8,8
+Species,fecal_odor,Moderately Unpleasant,Faecalimonas umbilicata,1.7632704415664189,8,8
+Species,fecal_odor,Moderately Unpleasant,Blautia hansenii,2.3062502923666917,8,8
+Species,fecal_odor,Moderately Unpleasant,Lactobacillus acidophilus,4.770379175994193,8,8
+Species,fecal_odor,Moderately Unpleasant,Allobaculum sp910577085,4.402266943152415,8,8
+Species,fecal_odor,Moderately Unpleasant,Faecalibaculum rodentium,4.368289530994587,8,8
+Species,fecal_odor,Moderately Unpleasant,Dubosiella newyorkensis,2.6635087657220025,8,8
+Species,fecal_odor,Moderately Unpleasant,Faecalibacterium sp900540455,2.350613311077063,8,8
+Species,fecal_odor,Moderately Unpleasant,Mediterraneibacter gnavus,1.9958719706258687,8,8
+Species,fecal_odor,Moderately Unpleasant,Blautia_A sp026169535,1.8863577767078255,8,8
+Species,fecal_odor,Moderately Unpleasant,Leptogranulimonas caecicola,2.2502067463855564,8,8
+Species,fecal_odor,Moderately Unpleasant,Peptacetobacter hiranonis,0.8689526005629297,8,8
+Species,fecal_odor,Moderately Unpleasant,Allobaculum stercoricanis,0.4316289301041691,8,8
+Species,fecal_odor,Moderately Unpleasant,Blautia_A sp030536995,0.8072821110536591,8,8
+Species,fecal_odor,Moderately Unpleasant,Limosilactobacillus reuteri,1.7088377624406175,8,8
+Species,fecal_odor,Moderately Unpleasant,Gallibacter sp937900695,0.53052426848129,8,8
+Species,fecal_odor,Moderately Unpleasant,Faecalimonas sp900550235,0.62841193511201,8,8
+Species,fecal_odor,Moderately Unpleasant,Blautia sp900556555,0.3580431324152556,8,8
+Species,fecal_odor,Moderately Unpleasant,Peptacetobacter sp900550335,0.23040344218546366,7,8
+Species,fecal_odor,Moderately Unpleasant,Faecousia sp963560135,0.6409027785792326,8,8
+Species,fecal_odor,Moderately Unpleasant,Negativibacillus sp000435195,0.3700938717857692,8,8
+Species,fecal_odor,Moderately Unpleasant,Blautia sp900753905,0.1568092260805844,8,8
+Species,fecal_odor,Moderately Unpleasant,Bifidobacterium criceti,0.5597011365136837,8,8
+Species,fecal_odor,Moderately Unpleasant,Faecousia sp937890525,0.11379073981039277,8,8
+Species,fecal_odor,Moderately Unpleasant,Kribbibacterium absianum,0.47129223377118096,8,8
+Species,fecal_odor,Moderately Unpleasant,Holdemanella hominis,0.1448638677970593,7,8
+Species,fecal_odor,Moderately Unpleasant,Fusobacterium_A sp900555845,0.057152285227925564,7,8
+Species,fecal_odor,Moderately Unpleasant,Turicibacter faecis,0.19360112362690557,8,8
+Species,fecal_odor,Moderately Unpleasant,Cetobacterium_A sp934085975,0.11775361481055567,2,8
+Species,fecal_odor,Moderately Unpleasant,Streptococcus lutetiensis,0.1771021592717082,7,8
+Species,fecal_odor,Moderately Unpleasant,Granulimonas sp965141595,0.18783043231542476,8,8
+Species,fecal_odor,Moderately Unpleasant,Ligilactobacillus animalis,0.0022166933305316776,5,8
+Species,fecal_odor,Moderately Unpleasant,Blautia sp900555025,0.08400323581422232,8,8
+Species,fecal_odor,Moderately Unpleasant,Oliverpabstia sp000432335,0.06058992698797717,8,8
+Species,fecal_odor,Moderately Unpleasant,Faecalimonas sp900551895,0.004558874332394441,7,8
+Species,fecal_odor,Moderately Unpleasant,Alitiscatomonas aceti,0.06579884709646255,8,8
+Species,fecal_odor,Moderately Unpleasant,Collinsella sp902470815,0.027704343103955434,8,8
+Species,fecal_odor,Moderately Unpleasant,Adlercreutzia rubneri,0.1010614349743176,8,8
+Species,fecal_odor,Moderately Unpleasant,Amulumruptor sp900539915,0.08700734395666071,7,8
+Species,fecal_odor,Moderately Unpleasant,Bifidobacterium animalis,0.10597581091012084,8,8
+Species,fecal_odor,Moderately Unpleasant,Lactobacillus johnsonii,0.10833589505669121,7,8
+Species,fecal_odor,Moderately Unpleasant,Bifidobacterium animalis_B,0.08713370360199943,8,8
+Species,fecal_odor,Moderately Unpleasant,Bifidobacterium canis,0.05965458002144686,8,8
+Species,fecal_odor,Moderately Unpleasant,Schaedlerella glycyrrhizinilytica_A,0.021767253295903406,8,8
+Species,fecal_odor,Moderately Unpleasant,Alloprevotella sp000437675,0.0160837720266901,7,8
+Species,fecal_odor,Moderately Unpleasant,Schaedlerella sp900765975,0.03747105958360863,8,8
+Species,fecal_odor,Moderately Unpleasant,Dubosiella sp910585105,0.03418110679544387,8,8
+Species,fecal_odor,Moderately Unpleasant,Collinsella sp008014645,0.0080918514919812,7,8
+Species,fecal_odor,Moderately Unpleasant,Enterocloster sp001517625,0.016574095752400896,7,8
+Species,fecal_odor,Moderately Unpleasant,Lactobacillus sp910589675,0.04245158266159586,7,8
+Species,fecal_odor,Moderately Unpleasant,Avimicrobium sp934845495,0.017618302934348854,7,8
+Species,fecal_odor,Moderately Unpleasant,Faecalibacterium sp937880095,0.005904489191286574,1,8
+Species,fecal_odor,Moderately Unpleasant,Bifidobacterium pullorum_B,0.0035126117783108816,7,8
+Species,fecal_odor,Unpleasant,Allobaculum mucilyticum,2.607738534239053,9,9
+Species,fecal_odor,Unpleasant,Collinsella intestinalis,22.9099399814798,9,9
+Species,fecal_odor,Unpleasant,UMGS1590 sp900553245,18.60127782638993,9,9
+Species,fecal_odor,Unpleasant,Bifidobacterium globosum,2.0130157475266817,9,9
+Species,fecal_odor,Unpleasant,Blautia_A sp900541345,9.209921237516072,9,9
+Species,fecal_odor,Unpleasant,Faecalimonas umbilicata,8.667724559906736,9,9
+Species,fecal_odor,Unpleasant,Blautia hansenii,7.938770094433445,9,9
+Species,fecal_odor,Unpleasant,Lactobacillus acidophilus,0.6209119245194752,9,9
+Species,fecal_odor,Unpleasant,Allobaculum sp910577085,0.31937733286457765,9,9
+Species,fecal_odor,Unpleasant,Faecalibaculum rodentium,0.546350629707456,9,9
+Species,fecal_odor,Unpleasant,Dubosiella newyorkensis,0.4644685116151208,9,9
+Species,fecal_odor,Unpleasant,Faecalibacterium sp900540455,3.898604697028618,9,9
+Species,fecal_odor,Unpleasant,Mediterraneibacter gnavus,2.4343589755030393,9,9
+Species,fecal_odor,Unpleasant,Blautia_A sp026169535,2.8913108328046344,9,9
+Species,fecal_odor,Unpleasant,Leptogranulimonas caecicola,0.24665943070110197,9,9
+Species,fecal_odor,Unpleasant,Peptacetobacter hiranonis,3.3415031883559267,9,9
+Species,fecal_odor,Unpleasant,Allobaculum stercoricanis,3.2275866924463803,9,9
+Species,fecal_odor,Unpleasant,Blautia_A sp030536995,1.3160811737096685,9,9
+Species,fecal_odor,Unpleasant,Limosilactobacillus reuteri,0.40046371282326093,6,9
+Species,fecal_odor,Unpleasant,Gallibacter sp937900695,1.2400159463507354,9,9
+Species,fecal_odor,Unpleasant,Faecalimonas sp900550235,0.8068756323509921,9,9
+Species,fecal_odor,Unpleasant,Blautia sp900556555,0.7457568298610463,9,9
+Species,fecal_odor,Unpleasant,Peptacetobacter sp900550335,0.893128589403065,9,9
+Species,fecal_odor,Unpleasant,Faecousia sp963560135,0.6357024358948973,9,9
+Species,fecal_odor,Unpleasant,Negativibacillus sp000435195,0.393980176253059,9,9
+Species,fecal_odor,Unpleasant,Blautia sp900753905,0.4977394742054164,9,9
+Species,fecal_odor,Unpleasant,Bifidobacterium criceti,0.039033838323955135,6,9
+Species,fecal_odor,Unpleasant,Faecousia sp937890525,0.4454997379524153,9,9
+Species,fecal_odor,Unpleasant,Kribbibacterium absianum,0.02977213040040694,6,9
+Species,fecal_odor,Unpleasant,Holdemanella hominis,0.36230051292830817,9,9
+Species,fecal_odor,Unpleasant,Fusobacterium_A sp900555845,0.3195600530465236,8,9
+Species,fecal_odor,Unpleasant,Turicibacter faecis,0.1549458696139647,8,9
+Species,fecal_odor,Unpleasant,Cetobacterium_A sp934085975,0.20625383697039137,3,9
+Species,fecal_odor,Unpleasant,Streptococcus lutetiensis,0.20483863360722016,7,9
+Species,fecal_odor,Unpleasant,Granulimonas sp965141595,0.01735548734544129,5,9
+Species,fecal_odor,Unpleasant,Ligilactobacillus animalis,0.01652788706033667,7,9
+Species,fecal_odor,Unpleasant,Blautia sp900555025,0.1625800909072724,9,9
+Species,fecal_odor,Unpleasant,Oliverpabstia sp000432335,0.22687671325886577,9,9
+Species,fecal_odor,Unpleasant,Faecalimonas sp900551895,0.23644428878608495,9,9
+Species,fecal_odor,Unpleasant,Alitiscatomonas aceti,0.17321345327311863,9,9
+Species,fecal_odor,Unpleasant,Collinsella sp902470815,0.1718934044629131,9,9
+Species,fecal_odor,Unpleasant,Adlercreutzia rubneri,0.006195935286693002,6,9
+Species,fecal_odor,Unpleasant,Amulumruptor sp900539915,0.011687068774749568,4,9
+Species,fecal_odor,Unpleasant,Bifidobacterium animalis,0.00889153282325934,6,9
+Species,fecal_odor,Unpleasant,Lactobacillus johnsonii,0.011972149905772278,4,9
+Species,fecal_odor,Unpleasant,Bifidobacterium animalis_B,0.007143511370317133,5,9
+Species,fecal_odor,Unpleasant,Bifidobacterium canis,0.00891685635933605,6,9
+Species,fecal_odor,Unpleasant,Schaedlerella glycyrrhizinilytica_A,0.060227610324705035,9,9
+Species,fecal_odor,Unpleasant,Alloprevotella sp000437675,0.055877926592612044,8,9
+Species,fecal_odor,Unpleasant,Schaedlerella sp900765975,0.03289772194093177,9,9
+Species,fecal_odor,Unpleasant,Dubosiella sp910585105,0.005199920020100885,4,9
+Species,fecal_odor,Unpleasant,Collinsella sp008014645,0.043374366094825,8,9
+Species,fecal_odor,Unpleasant,Enterocloster sp001517625,0.03332707245095098,8,9
+Species,fecal_odor,Unpleasant,Lactobacillus sp910589675,0.005074795593488082,3,9
+Species,fecal_odor,Unpleasant,Avimicrobium sp934845495,0.0325705361127685,8,9
+Species,fecal_odor,Unpleasant,Faecalibacterium sp937880095,0.031738294594806996,5,9
+Species,fecal_odor,Unpleasant,Bifidobacterium pullorum_B,0.008544595927280301,3,9
+Species,gender,female,Allobaculum mucilyticum,19.082022388050525,21,21
+Species,gender,female,Collinsella intestinalis,12.689728278732046,21,21
+Species,gender,female,UMGS1590 sp900553245,10.055333098551236,21,21
+Species,gender,female,Bifidobacterium globosum,8.241868757751213,21,21
+Species,gender,female,Blautia_A sp900541345,6.120639844910351,21,21
+Species,gender,female,Faecalimonas umbilicata,4.535371297836046,21,21
+Species,gender,female,Blautia hansenii,5.121702942556175,21,21
+Species,gender,female,Lactobacillus acidophilus,3.0681228756353764,21,21
+Species,gender,female,Allobaculum sp910577085,3.0407927692914596,21,21
+Species,gender,female,Faecalibaculum rodentium,3.694173610675755,21,21
+Species,gender,female,Dubosiella newyorkensis,2.9518752682500127,21,21
+Species,gender,female,Faecalibacterium sp900540455,2.190879933797188,21,21
+Species,gender,female,Mediterraneibacter gnavus,2.053631774267254,21,21
+Species,gender,female,Blautia_A sp026169535,2.655566174374838,21,21
+Species,gender,female,Leptogranulimonas caecicola,2.28484382509191,21,21
+Species,gender,female,Peptacetobacter hiranonis,1.8759046077840762,21,21
+Species,gender,female,Allobaculum stercoricanis,1.197839218685568,21,21
+Species,gender,female,Blautia_A sp030536995,0.9472142581087463,21,21
+Species,gender,female,Limosilactobacillus reuteri,1.1919295512368049,18,21
+Species,gender,female,Gallibacter sp937900695,0.9605714009062365,21,21
+Species,gender,female,Faecalimonas sp900550235,0.8420120922951453,21,21
+Species,gender,female,Blautia sp900556555,0.5194930123889119,21,21
+Species,gender,female,Peptacetobacter sp900550335,0.5061387260721338,21,21
+Species,gender,female,Faecousia sp963560135,0.5445322836879273,21,21
+Species,gender,female,Negativibacillus sp000435195,0.2760128073272798,20,21
+Species,gender,female,Blautia sp900753905,0.31323781802609313,21,21
+Species,gender,female,Bifidobacterium criceti,0.28458167546433816,19,21
+Species,gender,female,Faecousia sp937890525,0.2791160238540857,21,21
+Species,gender,female,Kribbibacterium absianum,0.3007893185216226,19,21
+Species,gender,female,Holdemanella hominis,0.2119503401974939,21,21
+Species,gender,female,Fusobacterium_A sp900555845,0.1839806371579691,18,21
+Species,gender,female,Turicibacter faecis,0.20287518516062694,21,21
+Species,gender,female,Cetobacterium_A sp934085975,0.1332530214865699,5,21
+Species,gender,female,Streptococcus lutetiensis,0.08636930304818108,18,21
+Species,gender,female,Granulimonas sp965141595,0.1690581872433849,19,21
+Species,gender,female,Ligilactobacillus animalis,0.14170107140430657,16,21
+Species,gender,female,Blautia sp900555025,0.1357775013285025,21,21
+Species,gender,female,Oliverpabstia sp000432335,0.12135216014895986,21,21
+Species,gender,female,Faecalimonas sp900551895,0.026681434937396078,20,21
+Species,gender,female,Alitiscatomonas aceti,0.06316475596112812,19,21
+Species,gender,female,Collinsella sp902470815,0.08290821625224895,21,21
+Species,gender,female,Adlercreutzia rubneri,0.08313564570209363,19,21
+Species,gender,female,Amulumruptor sp900539915,0.05708556106533557,18,21
+Species,gender,female,Bifidobacterium animalis,0.06775439386954779,19,21
+Species,gender,female,Lactobacillus johnsonii,0.06070501022730294,15,21
+Species,gender,female,Bifidobacterium animalis_B,0.05506406169890378,19,21
+Species,gender,female,Bifidobacterium canis,0.046124441238154054,19,21
+Species,gender,female,Schaedlerella glycyrrhizinilytica_A,0.02903569108872882,21,21
+Species,gender,female,Alloprevotella sp000437675,0.03328245400967477,19,21
+Species,gender,female,Schaedlerella sp900765975,0.043021775187238695,21,21
+Species,gender,female,Dubosiella sp910585105,0.025360174185953814,17,21
+Species,gender,female,Collinsella sp008014645,0.02505075552294576,19,21
+Species,gender,female,Enterocloster sp001517625,0.022656085677675537,18,21
+Species,gender,female,Lactobacillus sp910589675,0.024312832881459728,14,21
+Species,gender,female,Avimicrobium sp934845495,0.023121608649926257,18,21
+Species,gender,female,Faecalibacterium sp937880095,0.016384694764905245,7,21
+Species,gender,female,Bifidobacterium pullorum_B,0.0029073657730262037,14,21
+Species,gender,male,Allobaculum mucilyticum,20.200822847863787,9,9
+Species,gender,male,Collinsella intestinalis,10.496081601856206,9,9
+Species,gender,male,UMGS1590 sp900553245,9.78326242318499,9,9
+Species,gender,male,Bifidobacterium globosum,11.695057555054419,9,9
+Species,gender,male,Blautia_A sp900541345,3.875821715385553,9,9
+Species,gender,male,Faecalimonas umbilicata,3.356510463988221,9,9
+Species,gender,male,Blautia hansenii,2.542842467765636,9,9
+Species,gender,male,Lactobacillus acidophilus,5.264896206591761,9,9
+Species,gender,male,Allobaculum sp910577085,4.838916694159845,9,9
+Species,gender,male,Faecalibaculum rodentium,3.2466144792482283,9,9
+Species,gender,male,Dubosiella newyorkensis,3.2405315540152952,9,9
+Species,gender,male,Faecalibacterium sp900540455,2.3067291865109607,9,9
+Species,gender,male,Mediterraneibacter gnavus,4.375133363494901,9,9
+Species,gender,male,Blautia_A sp026169535,1.5459110238781273,9,9
+Species,gender,male,Leptogranulimonas caecicola,2.252426112289261,9,9
+Species,gender,male,Peptacetobacter hiranonis,1.7072877681579886,9,9
+Species,gender,male,Allobaculum stercoricanis,1.6294738379762501,9,9
+Species,gender,male,Blautia_A sp030536995,1.3548778739348102,9,9
+Species,gender,male,Limosilactobacillus reuteri,0.8043038206622497,9,9
+Species,gender,male,Gallibacter sp937900695,0.5372280451973087,9,9
+Species,gender,male,Faecalimonas sp900550235,0.7288088131097997,9,9
+Species,gender,male,Blautia sp900556555,0.5991253106769706,9,9
+Species,gender,male,Peptacetobacter sp900550335,0.4857091293223031,8,9
+Species,gender,male,Faecousia sp963560135,0.17340879874258308,8,9
+Species,gender,male,Negativibacillus sp000435195,0.19852658709927987,7,9
+Species,gender,male,Blautia sp900753905,0.17584469840251432,9,9
+Species,gender,male,Bifidobacterium criceti,0.17592938194618093,8,9
+Species,gender,male,Faecousia sp937890525,0.07816770243631055,8,9
+Species,gender,male,Kribbibacterium absianum,0.20825107411558857,8,9
+Species,gender,male,Holdemanella hominis,0.2029368266764008,8,9
+Species,gender,male,Fusobacterium_A sp900555845,0.14404453032265174,8,9
+Species,gender,male,Turicibacter faecis,0.14028262887592693,8,9
+Species,gender,male,Cetobacterium_A sp934085975,6.263771500035449e-5,1,9
+Species,gender,male,Streptococcus lutetiensis,0.22542801366030382,7,9
+Species,gender,male,Granulimonas sp965141595,0.1448573684706517,7,9
+Species,gender,male,Ligilactobacillus animalis,0.10447559782926562,8,9
+Species,gender,male,Blautia sp900555025,0.12423960610841675,9,9
+Species,gender,male,Oliverpabstia sp000432335,0.07780532070420021,9,9
+Species,gender,male,Faecalimonas sp900551895,0.18930297542085972,9,9
+Species,gender,male,Alitiscatomonas aceti,0.1021592384447375,8,9
+Species,gender,male,Collinsella sp902470815,0.03419705638715366,9,9
+Species,gender,male,Adlercreutzia rubneri,0.07622779395911551,8,9
+Species,gender,male,Amulumruptor sp900539915,0.09754959357110406,5,9
+Species,gender,male,Bifidobacterium animalis,0.08150028929986959,8,9
+Species,gender,male,Lactobacillus johnsonii,0.060637645785679026,6,9
+Species,gender,male,Bifidobacterium animalis_B,0.066676470110621,7,9
+Species,gender,male,Bifidobacterium canis,0.05465637502789053,8,9
+Species,gender,male,Schaedlerella glycyrrhizinilytica_A,0.0371471652136008,9,9
+Species,gender,male,Alloprevotella sp000437675,0.011917351768925341,5,9
+Species,gender,male,Schaedlerella sp900765975,0.020510794509161615,9,9
+Species,gender,male,Dubosiella sp910585105,0.05201455886637141,8,9
+Species,gender,male,Collinsella sp008014645,0.011044142956280265,8,9
+Species,gender,male,Enterocloster sp001517625,0.015766703115322016,7,9
+Species,gender,male,Lactobacillus sp910589675,0.024919594507023617,6,9
+Species,gender,male,Avimicrobium sp934845495,0.00743371769645369,8,9
+Species,gender,male,Faecalibacterium sp937880095,0.0011240370871913223,1,9
+Species,gender,male,Bifidobacterium pullorum_B,0.012581428842494517,7,9
